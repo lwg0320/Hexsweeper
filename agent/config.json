@@ -1,0 +1,32 @@
+{
+  "implementation_agent": {
+    "name": "Codex implementation session",
+    "configuration": "Codex desktop local task using the system-provided GPT-6 model family; exact model variant and reasoning setting were not exposed. Read-only public web research and localhost browser verification were used. No live model API key was available.",
+    "permissions": ["read and write project files", "run local shell commands and deterministic checks", "read public web sources", "operate the localhost game in a browser"],
+    "prompt": "agent/implementation.md",
+    "status": "implementation complete; student should verify and personalize the log"
+  },
+  "gameplay_agent": {
+    "name": "Hex Minesweeper model player",
+    "entrypoint": "hex_minesweeper.model_agent.ModelAgent",
+    "provider": "OpenAI Responses API",
+    "model_environment_variable": "HEXSWEEPER_MODEL",
+    "default_model": "gpt-6-astra",
+    "tool_allowlist": ["choose_move"],
+    "filesystem_tools": false,
+    "shell_tools": false,
+    "web_tools": false,
+    "skill": "hex_minesweeper/skills/hex-minesweeper-player/SKILL.md"
+  },
+  "reusable_skill": {
+    "path": "hex_minesweeper/skills/hex-minesweeper-player/SKILL.md",
+    "loaded_by": "hex_minesweeper.model_agent.ModelAgent"
+  },
+  "independent_review": {
+    "status": "completed_with_findings",
+    "review_prompt": "agent/independent-review.md",
+    "report": "agent/REVIEW.md",
+    "reviewer_must_not_have_written_code": true,
+    "summary": "Read-only independent review completed. Seed leak and runner ordering issues were fixed; remaining live evaluation, peer playtest, recording, and fresh-clone/tag evidence are listed in the report."
+  }
+}

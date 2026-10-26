@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101712">
+  <title>Hex Minesweeper</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Hex Minesweeper home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span>HEX<span class="brand-light">SWEEPER</span></span>
+      </a>
+      <span class="edition">A small logic game</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">Six neighbors. One safe first move.</p>
+        <h1>Read the numbers.<br><span>Clear the board.</span></h1>
+        <p class="intro-copy">Reveal every safe hex without uncovering a mine. Numbers count the mines in the six cells around them.</p>
+      </section>
+
+      <section class="game-card" aria-label="Hex Minesweeper game">
+        <div class="game-head">
+          <div class="game-title">
+            <span class="live-dot" aria-hidden="true"></span>
+            <div>
+              <h2>Hex field</h2>
+              <p id="board-caption">37 cells · 6 mines · radius 3</p>
+            </div>
+          </div>
+          <span class="board-private">PRIVATE MINE LAYOUT</span>
+        </div>
+
+        <div class="stats" aria-label="Game status">
+          <div class="stat">
+            <span class="stat-label">MINES</span>
+            <strong id="mine-count">06</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">REVEALED</span>
+            <strong id="revealed-count">00</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">FLAGS</span>
+            <strong id="flag-count">00</strong>
+          </div>
+          <div class="stat stat-state">
+            <span class="stat-label">STATUS</span>
+            <strong id="game-status">Ready</strong>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div id="board" class="board" role="grid" aria-label="Hexagonal minefield"></div>
+        </div>
+
+        <div class="controls">
+          <button id="new-game" class="button button-primary" type="button">
+            <span aria-hidden="true">↻</span> New board
+          </button>
+          <button id="flag-mode" class="button button-secondary" type="button" aria-pressed="false">
+            <span aria-hidden="true">⚑</span> Flag mode
+          </button>
+          <span class="control-spacer"></span>
+          <button id="baseline-step" class="button button-quiet" type="button">Solver move</button>
+          <button id="model-step" class="button button-model" type="button" title="Needs a local OPENAI_API_KEY">
+            Model move
+          </button>
+        </div>
+        <div class="autoplay-row">
+          <button id="baseline-auto" class="text-button" type="button">▶ Run solver</button>
+          <button id="model-auto" class="text-button" type="button">▶ Run model</button>
+          <span id="agent-config" class="agent-config">Checking local agent…</span>
+        </div>
+        <p id="message" class="message" role="status" aria-live="polite">Choose a hex to reveal it. Right-click or use Flag mode to place a flag.</p>
+      </section>
+
+      <section class="lower-grid">
+        <article class="info-card">
+          <div class="section-kicker">HOW TO PLAY</div>
+          <h3>Simple rules, six directions.</h3>
+          <ul class="rules-list">
+            <li><span>01</span><p>Reveal a cell. Your first reveal is always safe.</p></li>
+            <li><span>02</span><p>A number tells you how many mines touch that hex.</p></li>
+            <li><span>03</span><p>Flag suspected mines. Reveal every safe cell to win.</p></li>
+          </ul>
+          <p class="gesture-note">Click to reveal · Right-click to flag · On touch screens, turn on Flag mode.</p>
+        </article>
+        <article class="info-card agent-card">
+          <div class="section-kicker">TWO PLAYERS</div>
+          <h3>Human, solver, or model.</h3>
+          <p>The constraint solver deduces safe moves from visible clues and guesses only when no safe move is known. The model receives the same public board and legal actions through the game interface.</p>
+          <div class="agent-legend">
+            <span><i class="legend-dot legend-solver"></i> Constraint solver</span>
+            <span><i class="legend-dot legend-model"></i> Language model</span>
+          </div>
+        </article>
+      </section>
+    </main>
+    <footer>
+      <span>HEXSWEEPER</span>
+      <span>Radius 3 · 37 cells · 6 mines</span>
+    </footer>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

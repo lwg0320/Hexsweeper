@@ -1,0 +1,28 @@
+# Rule and source map
+
+Hex Minesweeper is an independently written, single-player Minesweeper implementation on a hex grid. This map separates the rules documented by the reference manual, assumptions made where a manual is silent, decisions specific to this project, and implementation behavior verified in code or play.
+
+| Rule or behavior | Source label | Documented rule / inference / project choice | Evidence |
+|---|---|---|---|
+| A revealed number reports mines in neighboring cells. | manual | Documented rule. | The KMines Handbook says numbers indicate nearby mines. Hex geometry changes the neighborhood to six cells (project choice). [`game.py`](hex_minesweeper/game.py), `neighbor_mines`. |
+| Revealing a mine ends the game in a loss. | manual | Documented rule. | The handbook says detonating a mine ends the game. `Game.step` and `Game.outcome`. |
+| Clear all safe cells to win. | manual | Documented objective; the implementation uses the equivalent condition that all safe cells are revealed. Flags are not required. | The handbook says all mines must be cleared. The equivalent safe-cell condition avoids requiring flags to be correct. `Game.outcome`. |
+| An empty cell opens connected neighboring safe cells. | manual | Documented Minesweeper behavior, applied over the six-cell hex neighborhood. | The handbook describes automatic opening around a zero-neighbor cell. `Game._reveal_region`. |
+| A flag marks a suspected mine and does not prove the cell contains a mine. | manual | Documented behavior. This game uses a single toggle between flagged and unflagged. | The handbook says flags are guesses, not proof. `Game.step` and `Game.legal_actions`. |
+| First reveal is safe. | design | Project choice; the reference manual does not require safe-first behavior. | `_place_mines_safely` excludes the opening cell. |
+| Mine count is 6 and the board is a filled radius-3 hexagon with 37 cells. | design | Project choices to keep episodes short and inspectable. | `MINE_COUNT`, `RADIUS`, and `board_coordinates` in `game.py`. |
+| Each cell's neighbors are the six axial offsets `(1,0)`, `(-1,0)`, `(0,1)`, `(0,-1)`, `(1,-1)`, and `(-1,1)`. | design | Hex-grid geometry selected for this project; it is not part of the square-grid manual. | `NEIGHBOR_DIRECTIONS` in `game.py`. |
+| The mine layout is deterministic from a private episode seed and the first-reveal coordinate, with the opening excluded. | design | Project choice for reproducible evaluation and safe first reveal. | `Game._place_mines_safely`; tests verify reproducibility and first-click safety. The seed stays out of public observations and browser responses. |
+| Mines are sampled uniformly from eligible cells. | assumed | The reference manual does not specify a generation algorithm; uniform sampling is the implementation's explicit assumption. | `random.Random.sample` in `Game._place_mines_safely`. |
+| Flags block reveal actions; a flag cannot be placed on a revealed cell. | code | Interface rule chosen to make flag/reveal actions unambiguous. | `Game.legal_actions` and `Game.step`. |
+| No first-click zero guarantee, chord action, question-mark state, timer, high-score table, difficulty menu, or pause mode. | design | Named omissions. These are common optional interface features, not required for the small core loop; no replacement mechanics are added. | The browser exposes reveal, flag, and reset only. |
+| Model sees only public cell states, revealed clues, public mine total, and legal actions. | code | Information boundary selected for the player role. The model receives the observation/action interface and reusable skill text, with no repository or evaluator tools. | `Game.observe`, `Game.legal_actions`, `ModelAgent.choose_action`, and server payload tests. |
+| At an in-game win or loss, mine locations are shown for review. | code | Post-game display choice. Runner limit and provider-failure outcomes are incomplete episodes and do not reveal the mine map. | `Game.observe` terminal handling; `EpisodeRunner` terminal overrides. |
+| Runner stops at 80 submitted steps, 80 model calls, or a 20-second wall-clock model deadline. | code | Explicit bounded-episode policy; provider errors and invalid model actions also end with distinct reasons. | `runner.py`; tests cover the limits, failures, invalid moves, and wall-clock timeout. |
+| After a human reveal, the status line reports the completed action. | observed | Browser regression found during play: the board updated while the status remained “player is choosing a move.” Including the latest event in the API response fixed it. | `tests/test_server.py`; browser verification on 2026-10-26. |
+
+## Sources and reuse terms
+
+- The [KMines Handbook](https://docs.kde.org/trunk_kf6/en/kmines/kmines/kmines.pdf), Chapters 2–3, is credited for the general Minesweeper rules summarized above. Its square-grid counts and optional controls were not copied as game assets or source code; the project independently implements a hex neighborhood. No handbook prose or code is copied into the project.
+- The user-provided [Atari End User License Agreement](https://atari.com/pages/end-user-license-agreement) was checked on 2026-10-26. It describes a personal, noncommercial license to Atari Products and restricts reproducing or adapting those Products and their content; it does not grant rights to reuse Atari materials in this project. This project uses no Poolshark source, ROM, screenshot, graphics, audio, branding, or other Atari product content.
+- The project code is original and is released under the repository's MIT license. That license covers only the new project code, not Atari, KDE, or other third-party material.
