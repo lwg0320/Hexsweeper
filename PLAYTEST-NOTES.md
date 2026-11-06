@@ -1,25 +1,22 @@
 # Human playtest notes
 
-Use this for a person playing this build while you observe silently. Keep the player anonymous. This is separate from the three assigned silent reviews of classmates' recordings.
+This records a friend playing the Hexsweeper build. The player is anonymous.
 
 ## Session
 
-- Date and game version/commit:
-- Map size:
-- Player: anonymous label only
-- Observer:
-- Did the observer avoid helping? Yes / No
+- Date and game version/commit: Not recorded
+- Map size: Small, medium, and large
+- Player: Anonymous friend
+- Observer: Student author
+- Did the observer avoid helping? Yes
 
 ## What happened
 
-- How the player started and what they tried:
-- Where they hesitated, guessed, or asked a question:
-- Whether they understood the six-neighbor clues, flags, and ending:
-- Episode result and approximate duration:
+- The player tried all three map sizes.
+- The player hesitated when an early reveal provided little information.
+- The player described the game as relatively easy.
+- No episode outcome or session duration was provided.
 
 ## Reflection
 
-- What I changed after watching, or why I kept the design:
-- What remains confusing or untested:
-
-If a playtest was not possible, do not fill in imagined observations. State why in the limitations paragraph of `EVALUATION.md` and what a playtest would have checked.
+No game mechanics have been changed based on this single session. A useful next change would be to clarify in the instructions that the first reveal is safe but may show only a clue rather than opening a large area. Keep the core reveal/flag rules unchanged. This was one friend on three sizes, so it does not establish how other players will find the difficulty.
