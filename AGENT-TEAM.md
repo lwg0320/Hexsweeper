@@ -10,4 +10,4 @@ Factual scaffold only. Rewrite the full one-page log in your own voice before su
 
 ## Student-authored account — required; rewrite the full log above
 
-In your own voice, say what you asked for, what each role could access, what it recommended, what you accepted or changed and why, what you learned from the review and actual peer notes, and which limits you chose to disclose. Keep it to one page and link sessions, review, peer notes, recording, and evaluation traces. See [checklist](agent/submission-checklist.md).
+In your own voice, say what you asked for, what each role could access, what it recommended, what you accepted or changed and why, what you learned from the review, the partner-game playtest, and your own game's human playtest, and which limits you chose to disclose. Keep it to one page and link sessions, review, peer notes, recording, and evaluation traces. See [checklist](agent/submission-checklist.md).

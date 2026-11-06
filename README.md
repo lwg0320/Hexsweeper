@@ -10,6 +10,8 @@ Each episode uses a seeded map: small has 19 hexes and 3 mines, medium has 37 he
 
 The intentional rule adaptation is using a hexagon with six neighbors instead of a rectangular grid with eight neighbors. Map sizes are project choices that change only board radius and mine count; there are no added game modes, power-ups, timers, or scoring rules. The complete rule map and evidence labels are in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md).
 
+If the scope had to shrink further, remove the small and large presets first and keep the medium-board game loop and player interface. This replaces the earlier Poolshark direction; update the Week 3 thread to point to this current scope. A draft with an acceptance-trace link is in [WEEK3-SCOPE-UPDATE.md](WEEK3-SCOPE-UPDATE.md).
+
 ## Requirements
 
 - Python 3.8 or newer
@@ -97,7 +99,7 @@ The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it ru
 - The coding-agent instructions are in [AGENTS.md](AGENTS.md). The project implementation record is in [AGENT-TEAM.md](AGENT-TEAM.md); add the student-authored reflection before submission.
 - The remaining agent-team evidence and PR steps are tracked in [agent/submission-checklist.md](agent/submission-checklist.md), with a paste-ready [PR evidence block](agent/pr-body-template.md). The reusable skill's two-session invocation log is [agent/skill-usage.md](agent/skill-usage.md).
 - The independent read-only review is recorded in [agent/REVIEW.md](agent/REVIEW.md). It found no direct preterminal mine/seed leak and lists the remaining evidence gaps.
-- A human playtest template is in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md), and the later three-classmate silent review template is in [SILENT-PEER-REVIEWS.md](SILENT-PEER-REVIEWS.md). They are separate activities.
+- Three separate peer activities are tracked: playtesting a partner's game during the week of November 2 and sharing notes by November 6 ([PARTNER-PLAYTEST-NOTES.md](PARTNER-PLAYTEST-NOTES.md)); having someone play this Hexsweeper build while you observe ([PLAYTEST-NOTES.md](PLAYTEST-NOTES.md)); and the later three-classmate silent review ([SILENT-PEER-REVIEWS.md](SILENT-PEER-REVIEWS.md)).
 - The recording-only model view is available at `/?recording=model`; the ordinary game page keeps only the **Game playing agent** controls. Starting live model playback sends provider requests and may incur cost.
 - A 3–5 minute recording, live model results, and the course-repository pull request remain submission work. No live provider key or human playtest notes were available during implementation, so no results are claimed here.
 
