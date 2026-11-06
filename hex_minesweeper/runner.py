@@ -8,8 +8,8 @@ from threading import Thread
 import time
 from typing import Any, Callable
 
-from .game import Game, IllegalAction
-from .model_agent import ModelAgent, ModelCallError, pricing_metadata
+from .game import BOARD_PRESETS, Game, IllegalAction
+from .model_agent import MAX_PUBLIC_HISTORY, ModelAgent, ModelCallError, pricing_metadata
 from .solver import choose_solver_action
 
 MAX_STEPS = 80
@@ -25,6 +25,7 @@ class EpisodeRunner:
     max_model_calls: int = MAX_MODEL_CALLS
     model_timeout_seconds: float = MODEL_TIMEOUT_SECONDS
     fixed_opening: tuple[int, int] | None = None
+    board_size: str | None = None
     steps: int = 0
     model_calls: int = 0
     illegal_actions: int = 0
@@ -34,8 +35,21 @@ class EpisodeRunner:
     latency_ms: list[int] = field(default_factory=list)
     estimated_cost_usd: float | None = 0.0
     model_name: str | None = None
+    model_history_mode: str | None = None
+    model_playback_enabled: bool = False
 
     def __post_init__(self) -> None:
+        if self.board_size is not None:
+            if self.board_size not in BOARD_PRESETS:
+                raise ValueError("board size must be small, medium, or large")
+            self.game = Game(**BOARD_PRESETS[self.board_size])
+        else:
+            self.board_size = next(
+                (name for name, config in BOARD_PRESETS.items()
+                 if (self.game.radius, self.game.mine_count) ==
+                 (config["radius"], config["mine_count"])),
+                "custom",
+            )
         self.game.reset(self.seed)
         if self.fixed_opening is not None:
             q, r = self.fixed_opening
@@ -110,15 +124,25 @@ class EpisodeRunner:
         agent = agent or ModelAgent(timeout=self.model_timeout_seconds)
         observation = self.observe("model")
         actions = self.legal_actions("model")
+        history_mode = getattr(agent, "history_mode", "observation_only")
+        if history_mode not in ("observation_only", "bounded"):
+            raise ValueError("model agent history_mode must be observation_only or bounded")
+        history_limit = getattr(agent, "history_limit", MAX_PUBLIC_HISTORY)
+        public_history = self._public_history(history_limit) if history_mode == "bounded" else None
         self.model_calls += 1
         self.steps += 1  # A failed model turn still consumes a step budget.
         self.model_name = agent.model
+        self.model_history_mode = history_mode
         started = time.monotonic()
         result_queue: Queue[tuple[str, Any]] = Queue(maxsize=1)
 
         def request_decision() -> None:
             try:
-                result_queue.put(("decision", agent.choose_action(observation, actions)))
+                if public_history is None:
+                    decision = agent.choose_action(observation, actions)
+                else:
+                    decision = agent.choose_action(observation, actions, history=public_history)
+                result_queue.put(("decision", decision))
             except Exception as error:
                 result_queue.put(("error", error))
 
@@ -249,8 +273,30 @@ class EpisodeRunner:
             "output_tokens": self.usage["output_tokens"],
             "estimated_cost_usd": self.estimated_cost_usd,
             "model": self.model_name,
+            "model_history_mode": self.model_history_mode,
             "pricing": pricing_metadata(),
         }
+
+    def _public_history(self, limit: int) -> list[dict[str, Any]]:
+        """Return only recent actions/results already public to the player."""
+        if isinstance(limit, bool) or not isinstance(limit, int) or not (
+            1 <= limit <= MAX_PUBLIC_HISTORY
+        ):
+            raise ValueError("history limit must be between 1 and 8")
+        history = []
+        for record in self.trace:
+            action = record.get("action")
+            event = record.get("event") or {}
+            if not isinstance(action, dict) or event.get("result") not in (
+                "flagged", "unflagged", "revealed"
+            ):
+                continue
+            history.append({
+                "action": dict(action),
+                "result": event["result"],
+                "changed": list(event.get("changed", [])),
+            })
+        return history[-limit:]
 
     def snapshot(self) -> dict[str, Any]:
         return {

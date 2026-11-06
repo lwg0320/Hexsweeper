@@ -13,6 +13,11 @@ from typing import Any
 
 RADIUS = 3
 MINE_COUNT = 6
+BOARD_PRESETS = {
+    "small": {"radius": 2, "mine_count": 3},
+    "medium": {"radius": 3, "mine_count": 6},
+    "large": {"radius": 4, "mine_count": 10},
+}
 NEIGHBOR_DIRECTIONS = ((1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1))
 
 

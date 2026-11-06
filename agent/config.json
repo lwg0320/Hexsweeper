@@ -6,6 +6,13 @@
     "prompt": "agent/implementation.md",
     "status": "implementation complete; student should verify and personalize the log"
   },
+  "implementation_session": {
+    "title": "Review Poolshark midterm rubric",
+    "thread_id": "01a1784c-e42f-7693-89c6-59e3cc607cd9",
+    "host": "local",
+    "in_app_link": "codex://threads/01a1784c-e42f-7693-89c6-59e3cc607cd9",
+    "linked_from_pr": false
+  },
   "gameplay_agent": {
     "name": "Hex Minesweeper model player",
     "entrypoint": "hex_minesweeper.model_agent.ModelAgent",
@@ -18,15 +25,26 @@
     "web_tools": false,
     "skill": "hex_minesweeper/skills/hex-minesweeper-player/SKILL.md"
   },
+  "model_comparison": {
+    "observation_only": "model",
+    "bounded_history": "model-history",
+    "history_window_public_actions": 8,
+    "history_contents": ["action", "public result", "publicly changed coordinates"]
+  },
   "reusable_skill": {
     "path": "hex_minesweeper/skills/hex-minesweeper-player/SKILL.md",
-    "loaded_by": "hex_minesweeper.model_agent.ModelAgent"
+    "loaded_by": "hex_minesweeper.model_agent.ModelAgent",
+    "separate_assistant_session_invocations_verified": 0,
+    "invocation_log": "agent/skill-usage.md"
   },
   "independent_review": {
-    "status": "completed_with_findings",
+    "status": "current_diff_read_only_review_and_followup_complete",
     "review_prompt": "agent/independent-review.md",
     "report": "agent/REVIEW.md",
+    "reviewer_session_link_recorded": false,
     "reviewer_must_not_have_written_code": true,
-    "summary": "Read-only independent review completed. Seed leak and runner ordering issues were fixed; remaining live evaluation, peer playtest, recording, and fresh-clone/tag evidence are listed in the report."
+    "reviewer_type": "separate read-only Codex subagent in this task",
+    "summary": "Current-diff review and read-only fix follow-up found no direct preterminal seed or mine leak. The reviewer identified and confirmed fixes for normal-session model-route access, a history limit above eight, and source-map wording. A standalone Codex CLI/cloud session link is not recorded.",
+    "coverage_note": "The review is current to the November 6 worktree, but the course's Codex evidence asks for a separate review session. Add a fresh session link if required; do not represent this subagent task as a standalone CLI/cloud session."
   }
 }

@@ -31,7 +31,7 @@
             <span class="live-dot" aria-hidden="true"></span>
             <div>
               <h2>Hex field</h2>
-              <p id="board-caption">37 cells · 6 mines · radius 3</p>
+              <p id="board-caption">Medium · 37 cells · 6 mines · radius 3</p>
             </div>
           </div>
           <span class="board-private">PRIVATE MINE LAYOUT</span>
@@ -61,6 +61,14 @@
         </div>
 
         <div class="controls">
+          <label class="size-control" for="board-size">
+            <span>MAP SIZE</span>
+            <select id="board-size" aria-label="Map size">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
           <button id="new-game" class="button button-primary" type="button">
             <span aria-hidden="true">↻</span> New board
           </button>
@@ -68,16 +76,13 @@
             <span aria-hidden="true">⚑</span> Flag mode
           </button>
           <span class="control-spacer"></span>
-          <button id="baseline-step" class="button button-quiet" type="button">Solver move</button>
-          <button id="model-step" class="button button-model" type="button" title="Needs a local OPENAI_API_KEY">
-            Model move
-          </button>
+          <button id="baseline-step" class="button button-quiet" type="button">Game playing agent</button>
         </div>
         <div class="autoplay-row">
-          <button id="baseline-auto" class="text-button" type="button">▶ Run solver</button>
-          <button id="model-auto" class="text-button" type="button">▶ Run model</button>
-          <span id="agent-config" class="agent-config">Checking local agent…</span>
+          <button id="baseline-auto" class="text-button" type="button">▶ Run game playing agent</button>
+          <button id="model-playback" class="text-button" type="button" hidden>▶ Start live model playback</button>
         </div>
+        <p id="model-playback-note" class="recording-note" hidden>Recording mode: this makes live provider calls and may use paid API credits. Click Start live model playback only when ready.</p>
         <p id="message" class="message" role="status" aria-live="polite">Choose a hex to reveal it. Right-click or use Flag mode to place a flag.</p>
       </section>
 
@@ -93,19 +98,15 @@
           <p class="gesture-note">Click to reveal · Right-click to flag · On touch screens, turn on Flag mode.</p>
         </article>
         <article class="info-card agent-card">
-          <div class="section-kicker">TWO PLAYERS</div>
-          <h3>Human, solver, or model.</h3>
-          <p>The constraint solver deduces safe moves from visible clues and guesses only when no safe move is known. The model receives the same public board and legal actions through the game interface.</p>
-          <div class="agent-legend">
-            <span><i class="legend-dot legend-solver"></i> Constraint solver</span>
-            <span><i class="legend-dot legend-model"></i> Language model</span>
-          </div>
+          <div class="section-kicker">OPTIONAL ASSISTANCE</div>
+          <h3 id="agent-description-title">Let the game playing agent take a turn.</h3>
+          <p id="agent-description">It uses the visible clues to find safe moves and makes a best guess when the clues cannot determine one.</p>
         </article>
       </section>
     </main>
     <footer>
       <span>HEXSWEEPER</span>
-      <span>Radius 3 · 37 cells · 6 mines</span>
+      <span>Small, medium, and large hex maps</span>
     </footer>
   </div>
   <script src="/app.js" defer></script>

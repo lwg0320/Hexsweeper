@@ -1,12 +1,14 @@
 # Hex Minesweeper
 
-A small Minesweeper recreation on a radius-3 hex board, with six-neighbor clues, flags, safe first reveal, automatic zero-region opening, and a clear win or loss. It includes a human-playable website, a constraint-solving baseline, and a model player that chooses moves through the same observation/action interface.
+A small Minesweeper recreation on a hex board, with six-neighbor clues, flags, safe first reveal, automatic zero-region opening, and a clear win or loss. Choose a small, medium, or large map. It includes a human-playable website, a constraint-solving baseline, and a model player that chooses moves through the same observation/action interface.
+
+**Design:** a hex-grid adaptation of classic Minesweeper. **Starting point:** implemented from scratch; no Poolshark code or assets were reused. The current project folder is intended for `midterms/lwg0320/` in the course repository.
 
 ## Scope
 
-One episode is one seeded 37-cell board with 6 mines. The first revealed hex is safe. A clue counts mines in the six adjacent hexes. Revealing a mine loses; revealing every safe hex wins. A flag is only a marker and is not required for victory.
+Each episode uses a seeded map: small has 19 hexes and 3 mines, medium has 37 hexes and 6 mines, and large has 61 hexes and 10 mines. All use the same six-neighbor rules and safe first reveal. A clue counts mines in the six adjacent hexes. Revealing a mine loses; revealing every safe hex wins. A flag is only a marker and is not required for victory.
 
-The only intentional rule adaptation is using a radius-3 hexagon and six neighbors instead of a rectangular grid and eight neighbors. There are no added game modes, power-ups, timers, or scoring rules. The complete rule map and evidence labels are in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md).
+The intentional rule adaptation is using a hexagon with six neighbors instead of a rectangular grid with eight neighbors. Map sizes are project choices that change only board radius and mine count; there are no added game modes, power-ups, timers, or scoring rules. The complete rule map and evidence labels are in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md).
 
 ## Requirements
 
@@ -16,7 +18,7 @@ The only intentional rule adaptation is using a radius-3 hexagon and six neighbo
 
 ## Run the website
 
-From the project root:
+From the project root (`midterms/lwg0320/` in the course repository; repository root in this development checkout):
 
     python3 -m hex_minesweeper.server
 
@@ -26,12 +28,17 @@ The game runs locally because its server keeps authoritative state private and p
 
 ## Play with the agents
 
-The constraint solver works without a model key. Use Solver move or Run solver.
+The website's **Game playing agent** works without a model key. Use it for one move or select **Run game playing agent** to let it play. The model player remains available to the evaluation runner; its controls are not shown on the game page.
 
-For the model player, set the API key in the environment before starting the website:
+For live model play through the recording-only page, run this from the project root after setting the API key in the local environment. Ordinary sessions cannot call the model endpoint; model play requires a session opened in recording mode. Do not paste the key into project files:
 
     export OPENAI_API_KEY=your_key
     python3 -m hex_minesweeper.server
+
+For paired evaluation instead, run this from the project root in a separate terminal with the key set there:
+
+    export OPENAI_API_KEY=your_key
+    python3 -m hex_minesweeper.evaluate --seeds 1401,1402,1403 --trials 2
 
 Optional settings:
 
@@ -53,7 +60,7 @@ Game exposes the five operations:
 4. step(player_id, action) validates and applies one action.
 5. outcome() reports ongoing, win, loss, or another explicit terminal reason.
 
-The runner holds the authoritative game state. It ends an episode at 80 actions, 80 model calls, a 20 second wall-clock model deadline, a provider failure, or an invalid model move. Failed model calls count against both action and call limits. Invalid model moves are counted and end the episode; the runner never substitutes a fallback move. The model receives only the public observation and legal-action list, not the seed, source files, or hidden mine map.
+The runner holds the authoritative game state. It ends an episode at 80 actions, 80 model calls, a 20 second wall-clock model deadline, a provider failure, or an invalid model move. Failed model calls count against both action and call limits. Invalid model moves are counted and end the episode; the runner never substitutes a fallback move. The website's model-step route accepts only sessions explicitly created in recording mode. Both model variants receive public data only: the observation-only version receives the observation and legal actions; bounded history additionally receives at most eight public actions/results. Neither receives the seed, source files, or hidden mine map.
 
 The reusable player instructions are in hex_minesweeper/skills/hex-minesweeper-player/SKILL.md. Agent setup and reviewer status are recorded in agent/config.json.
 
@@ -67,7 +74,7 @@ The suite checks hex geometry, seeded board behavior, first-click safety, clue/z
 
 ## Evaluate
 
-The suite and held-out cases were declared before live model tuning in [EVALUATION.md](EVALUATION.md). A baseline-only smoke run needs no API key:
+The suite and held-out cases were declared before live model tuning in [EVALUATION.md](EVALUATION.md). Run these commands from the project root. A baseline-only run needs no API key:
 
     python3 -m hex_minesweeper.evaluate --players baseline --seeds 1401,1402,1403 --trials 1
 
@@ -75,17 +82,28 @@ Paired live evaluation uses two trials on each declared seed and runs both playe
 
     python3 -m hex_minesweeper.evaluate --seeds 1401,1402,1403 --trials 2
 
+To compare the observation-only model with its bounded-history variant on the same cases:
+
+    python3 -m hex_minesweeper.evaluate --players baseline,model,model-history --seeds 1401,1402,1403 --trials 2
+
 Set OPENAI_API_KEY before a live run. The evaluator prints JSON Lines with seed, player, outcome, limits, invalid moves, latency, token usage, estimated cost when rates are configured, and a full trace. Repeat for held-out seeds with --seeds 9101,9102; do not tune the prompt on those cases.
 
 ## CI
 
-Pushes and pull requests run the deterministic suite using .github/workflows/ci.yml. Live model calls are intentionally not part of CI.
+The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it runs deterministic tests and checks browser JavaScript from `midterms/lwg0320/`, without secrets or live model calls. The general `.github/workflows/ci.yml` belongs to this standalone development repository and should not be added to the course PR.
 
 ## Team, playtest, and submission evidence
 
-- The project implementation record is in [AGENT-TEAM.md](AGENT-TEAM.md). Add the student-authored reflection before submission.
+- The coding-agent instructions are in [AGENTS.md](AGENTS.md). The project implementation record is in [AGENT-TEAM.md](AGENT-TEAM.md); add the student-authored reflection before submission.
+- The remaining agent-team evidence and PR steps are tracked in [agent/submission-checklist.md](agent/submission-checklist.md), with a paste-ready [PR evidence block](agent/pr-body-template.md). The reusable skill's two-session invocation log is [agent/skill-usage.md](agent/skill-usage.md).
 - The independent read-only review is recorded in [agent/REVIEW.md](agent/REVIEW.md). It found no direct preterminal mine/seed leak and lists the remaining evidence gaps.
-- Human peer playtest notes, a 3–5 minute recording, live evaluation results, and the course-repository pull request remain submission work. The peer-note template is in [PEER-PLAYTEST.md](PEER-PLAYTEST.md). No live provider key or peer notes were available during implementation, so no results are claimed here.
+- A human playtest template is in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md), and the later three-classmate silent review template is in [SILENT-PEER-REVIEWS.md](SILENT-PEER-REVIEWS.md). They are separate activities.
+- The recording-only model view is available at `/?recording=model`; the ordinary game page keeps only the **Game playing agent** controls. Starting live model playback sends provider requests and may incur cost.
+- A 3–5 minute recording, live model results, and the course-repository pull request remain submission work. No live provider key or human playtest notes were available during implementation, so no results are claimed here.
+
+## Recording
+
+Pending: add the accessible 3–5 minute recording link here and in the course PR description after recording. Follow [RECORDING-CHECKLIST.md](RECORDING-CHECKLIST.md).
 
 ## Reuse
 

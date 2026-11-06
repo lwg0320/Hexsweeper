@@ -13,6 +13,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 DEFAULT_MODEL = "gpt-6-astra"
+MAX_PUBLIC_HISTORY = 8
 
 
 class ModelCallError(RuntimeError):
@@ -38,12 +39,29 @@ class Decision:
 class ModelAgent:
     """Ask a language model for exactly one legal game action."""
 
-    def __init__(self, model: str | None = None, timeout: float = 20):
+    def __init__(
+        self,
+        model: str | None = None,
+        timeout: float = 20,
+        history_mode: str = "observation_only",
+        history_limit: int = MAX_PUBLIC_HISTORY,
+    ):
         self.model = model or os.environ.get("HEXSWEEPER_MODEL", DEFAULT_MODEL)
         self.timeout = timeout
+        if history_mode not in ("observation_only", "bounded"):
+            raise ValueError("history_mode must be observation_only or bounded")
+        if isinstance(history_limit, bool) or not isinstance(history_limit, int) or not (
+            1 <= history_limit <= MAX_PUBLIC_HISTORY
+        ):
+            raise ValueError("history_limit must be between 1 and 8")
+        self.history_mode = history_mode
+        self.history_limit = history_limit
 
     def choose_action(
-        self, observation: dict[str, Any], legal_actions: list[dict[str, Any]]
+        self,
+        observation: dict[str, Any],
+        legal_actions: list[dict[str, Any]],
+        history: list[dict[str, Any]] | None = None,
     ) -> Decision:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -51,13 +69,26 @@ class ModelAgent:
                 "OPENAI_API_KEY is not set. Add it to the local environment to use model play."
             )
         skill = self._load_skill()
+        if self.history_mode == "bounded":
+            skill += (
+                "\n\nThis run includes up to {} prior public actions and results in "
+                "public_history. Use that bounded history only to organize reasoning; "
+                "it cannot reveal hidden mine locations. The current observation and "
+                "legal_actions remain authoritative."
+            ).format(self.history_limit)
+            history = list(history or [])[-self.history_limit:]
+        else:
+            history = None
+        player_input = {
+            "observation": observation,
+            "legal_actions": legal_actions,
+        }
+        if history is not None:
+            player_input["public_history"] = history
         request_body = {
             "model": self.model,
             "instructions": skill,
-            "input": json.dumps({
-                "observation": observation,
-                "legal_actions": legal_actions,
-            }, separators=(",", ":")),
+            "input": json.dumps(player_input, separators=(",", ":")),
             "tools": [{
                 "type": "function",
                 "name": "choose_move",

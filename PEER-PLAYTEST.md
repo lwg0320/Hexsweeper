@@ -1,21 +1,8 @@
-# Peer playtest notes
+# Peer-playtest template moved
 
-Keep classmate observations anonymous here. Keep private feedback on CourseWorks as required by the assignment.
+The updated course brief separates playtesting your own game from reviewing classmates' recordings. Use:
 
-## Notes I gave
+- [`PLAYTEST-NOTES.md`](PLAYTEST-NOTES.md) for a person playing your build while you observe without helping.
+- [`SILENT-PEER-REVIEWS.md`](SILENT-PEER-REVIEWS.md) for the three assigned classmates' recordings, due before class November 16.
 
-- Playtester / project: [anonymous identifier]
-- Date and game version: [fill in]
-- What I observed: [fill in]
-- One thing an agent or silent player would have to guess: [fill in]
-- Question or suggestion that removes the guess: [fill in]
-
-## Notes I received
-
-- Playtester / project: [anonymous identifier]
-- Date and game version: [fill in]
-- What they observed: [fill in]
-- Confusing or unclear part: [fill in]
-- Change I made or reason I kept the design: [fill in]
-
-No peer playtest has happened in this workspace. Complete both sections after the assigned peer exchange; do not submit this template as completed notes.
+Do not submit this pointer as completed playtest evidence.

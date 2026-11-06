@@ -37,7 +37,67 @@ class FirstLegalAgent:
         return Decision(legal_actions[0])
 
 
+class HistoryAgent:
+    model = "test-history"
+    history_mode = "bounded"
+    history_limit = 2
+
+    def __init__(self):
+        self.history = None
+
+    def choose_action(self, observation, legal_actions, history=None):
+        self.history = history
+        return Decision(legal_actions[0])
+
+
 class RunnerTests(unittest.TestCase):
+    def test_board_size_presets_configure_the_expected_hex_maps(self):
+        expected = {
+            "small": (2, 19, 3),
+            "medium": (3, 37, 6),
+            "large": (4, 61, 10),
+        }
+        for size, (radius, cell_count, mine_count) in expected.items():
+            with self.subTest(size=size):
+                runner = EpisodeRunner(7, board_size=size)
+                observation = runner.observe()
+                self.assertEqual(runner.board_size, size)
+                self.assertEqual(observation["radius"], radius)
+                self.assertEqual(len(observation["cells"]), cell_count)
+                self.assertEqual(observation["mine_count"], mine_count)
+
+    def test_unknown_board_size_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "small, medium, or large"):
+            EpisodeRunner(7, board_size="extra-large")
+
+    def test_bounded_history_contains_only_recent_public_actions(self):
+        runner = EpisodeRunner(28, fixed_opening=(0, 0))
+        first_flag = next(
+            action for action in runner.legal_actions()
+            if action["type"] == "flag"
+        )
+        runner.step("human", first_flag)
+        second_flag = next(
+            action for action in runner.legal_actions()
+            if action["type"] == "flag" and (action["q"], action["r"]) !=
+            (first_flag["q"], first_flag["r"])
+        )
+        runner.step("human", second_flag)
+
+        agent = HistoryAgent()
+        runner.model_step(agent)
+
+        self.assertEqual(len(agent.history), 2)
+        self.assertEqual(agent.history[-1]["action"], second_flag)
+        self.assertNotIn("seed", str(agent.history))
+        self.assertNotIn("mine", str(agent.history))
+        self.assertEqual(runner.metrics()["model_history_mode"], "bounded")
+
+    def test_public_history_cannot_exceed_eight_actions(self):
+        runner = EpisodeRunner(123)
+        with self.assertRaises(ValueError):
+            runner._public_history(9)
+
     def test_step_budget_has_an_explicit_terminal_reason(self):
         runner = EpisodeRunner(1, max_steps=1)
         runner.step("human", {"type": "flag", "q": 0, "r": 0})

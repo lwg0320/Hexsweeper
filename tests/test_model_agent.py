@@ -21,6 +21,12 @@ class FakeResponse:
 
 
 class ModelAgentTests(unittest.TestCase):
+    def test_history_limit_is_bounded_to_eight(self):
+        with self.assertRaises(ValueError):
+            ModelAgent(history_mode="bounded", history_limit=9)
+        with self.assertRaises(ValueError):
+            ModelAgent(history_mode="bounded", history_limit=0)
+
     def test_model_receives_only_observation_and_legal_actions(self):
         action = {"type": "reveal", "q": 0, "r": 0}
         payload = {
@@ -73,6 +79,38 @@ class ModelAgentTests(unittest.TestCase):
             ):
                 with self.assertRaises(ModelCallError):
                     ModelAgent().choose_action({"cells": []}, [])
+
+    def test_bounded_history_mode_sends_only_the_supplied_public_history(self):
+        action = {"type": "reveal", "q": 0, "r": 0}
+        payload = {
+            "output": [{
+                "type": "function_call",
+                "name": "choose_move",
+                "arguments": json.dumps(action),
+            }],
+            "usage": {},
+        }
+        captured = {}
+
+        def fake_urlopen(request, timeout):
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse(payload)
+
+        observation = {"radius": 2, "mine_count": 3, "cells": []}
+        legal_actions = [action]
+        history = [{"action": {"type": "flag", "q": 1, "r": 0}, "result": "flagged", "changed": []}]
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test"}):
+            with patch("hex_minesweeper.model_agent.urlopen", fake_urlopen):
+                ModelAgent(history_mode="bounded").choose_action(
+                    observation, legal_actions, history=history
+                )
+
+        sent_input = json.loads(captured["body"]["input"])
+        self.assertEqual(sent_input["public_history"], history)
+        self.assertEqual(sent_input["observation"], observation)
+        self.assertEqual(sent_input["legal_actions"], legal_actions)
+        self.assertIn("up to 8 prior public actions", captured["body"]["instructions"])
+        self.assertNotIn("sk-test", captured["body"]["input"])
 
     def test_estimated_cost_requires_explicit_dated_rates(self):
         from hex_minesweeper.model_agent import _estimated_cost

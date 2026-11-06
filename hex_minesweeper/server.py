@@ -11,7 +11,7 @@ from threading import Lock, RLock
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .game import IllegalAction
+from .game import BOARD_PRESETS, IllegalAction
 from .model_agent import ModelCallError
 from .runner import EpisodeRunner
 
@@ -64,8 +64,20 @@ class Handler(SimpleHTTPRequestHandler):
                 if isinstance(seed, bool) or not isinstance(seed, (int, str)):
                     self._send_json(400, {"error": "seed must be an integer or string"})
                     return
+                board_size = body.get("size", "medium")
+                if not isinstance(board_size, str) or board_size not in BOARD_PRESETS:
+                    self._send_json(400, {"error": "size must be small, medium, or large"})
+                    return
+                model_playback_enabled = body.get("model_playback_enabled", False)
+                if not isinstance(model_playback_enabled, bool):
+                    self._send_json(400, {"error": "model_playback_enabled must be a boolean"})
+                    return
                 session_id = secrets.token_urlsafe(18)
-                runner = EpisodeRunner(seed)
+                runner = EpisodeRunner(
+                    seed,
+                    board_size=board_size,
+                    model_playback_enabled=model_playback_enabled,
+                )
                 with SESSIONS_LOCK:
                     SESSIONS[session_id] = runner
                     SESSION_GUARDS[session_id] = Lock()
@@ -96,6 +108,11 @@ class Handler(SimpleHTTPRequestHandler):
                     self._send_json(200, self._state_payload(session_id, runner, transition))
                     return
                 if parsed.path == "/api/model/step":
+                    if not self._model_playback_allowed(runner):
+                        self._send_json(403, {
+                            "error": "Live model playback is available only in recording mode."
+                        })
+                        return
                     transition = runner.model_step()
                     self._send_json(200, self._state_payload(session_id, runner, transition))
                     return
@@ -131,12 +148,17 @@ class Handler(SimpleHTTPRequestHandler):
             return SESSION_GUARDS.get(session_id)
 
     @staticmethod
+    def _model_playback_allowed(runner: EpisodeRunner) -> bool:
+        return runner.model_playback_enabled
+
+    @staticmethod
     def _state_payload(
         session_id: str, runner: EpisodeRunner, transition: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         state = transition or runner.snapshot()
         return {
             "session": session_id,
+            "board_size": runner.board_size,
             "observation": state["observation"],
             "legal_actions": state["legal_actions"],
             "outcome": state["outcome"],

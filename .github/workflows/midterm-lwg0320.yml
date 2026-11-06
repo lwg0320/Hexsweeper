@@ -1,0 +1,29 @@
+name: midterm-lwg0320
+
+on:
+  pull_request:
+    paths:
+      - "midterms/lwg0320/**"
+      - ".github/workflows/midterm-lwg0320.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run deterministic checks
+        working-directory: midterms/lwg0320
+        run: python -m unittest discover -s tests -v
+      - name: Check browser JavaScript
+        working-directory: midterms/lwg0320
+        run: node --check hex_minesweeper/static/app.js

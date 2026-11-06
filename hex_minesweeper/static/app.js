@@ -6,9 +6,11 @@
   const status = document.getElementById("game-status");
   const flagButton = document.getElementById("flag-mode");
   const baselineButton = document.getElementById("baseline-step");
-  const modelButton = document.getElementById("model-step");
   const baselineAutoButton = document.getElementById("baseline-auto");
-  const modelAutoButton = document.getElementById("model-auto");
+  const modelPlaybackButton = document.getElementById("model-playback");
+  const modelPlaybackNote = document.getElementById("model-playback-note");
+  const boardSizeSelect = document.getElementById("board-size");
+  const modelRecordingMode = new URLSearchParams(window.location.search).get("recording") === "model";
 
   let state = null;
   let flagMode = false;
@@ -41,6 +43,9 @@
     const width = board.getBoundingClientRect().width || 500;
     cellWidth = Math.max(31, Math.min(48, (width - 22) / 9.5));
     const height = cellWidth * 1.12;
+    const radius = state ? state.observation.radius : 3;
+    const stepY = height * 0.75;
+    board.style.height = Math.max(260, 2 * radius * stepY + height + 20) + "px";
     board.style.setProperty("--hex-width", cellWidth + "px");
     board.style.setProperty("--hex-height", height + "px");
     board.style.setProperty("--hex-step-x", (cellWidth * 0.96) + "px");
@@ -52,6 +57,10 @@
     if (!state) return;
     updateGeometry();
     const obs = state.observation;
+    const sizeName = state.board_size.charAt(0).toUpperCase() + state.board_size.slice(1);
+    document.getElementById("board-caption").textContent = sizeName + " · " + obs.cells.length +
+      " cells · " + obs.mine_count + " mines · radius " + obs.radius;
+    if (!busy && state.board_size !== "custom") boardSizeSelect.value = state.board_size;
     document.getElementById("mine-count").textContent = String(obs.mine_count).padStart(2, "0");
     document.getElementById("revealed-count").textContent = String(obs.revealed_safe).padStart(2, "0");
     document.getElementById("flag-count").textContent = String(obs.flag_count).padStart(2, "0");
@@ -114,16 +123,20 @@
 
   function updateButtons() {
     const ended = !state || state.outcome.terminal;
-    baselineButton.disabled = busy || ended;
-    modelButton.disabled = busy || ended || modelButton.dataset.available !== "true";
-    baselineAutoButton.disabled = busy || ended;
-    modelAutoButton.disabled = busy || ended || modelButton.dataset.available !== "true";
+    baselineButton.hidden = modelRecordingMode;
+    baselineButton.disabled = busy || ended || modelRecordingMode;
+    baselineAutoButton.hidden = modelRecordingMode;
+    baselineAutoButton.disabled = busy || ended || modelRecordingMode;
+    modelPlaybackButton.hidden = !modelRecordingMode;
+    modelPlaybackButton.disabled = busy || ended || !modelRecordingMode;
+    modelPlaybackButton.textContent = autoMode === "model" ? "■ Stop live model playback" : "▶ Start live model playback";
+    modelPlaybackNote.hidden = !modelRecordingMode;
     document.getElementById("new-game").disabled = busy;
+    boardSizeSelect.disabled = busy;
     flagButton.disabled = busy || ended;
     flagButton.setAttribute("aria-pressed", String(flagMode));
     flagButton.innerHTML = flagMode ? "<span aria-hidden='true'>⚑</span> Reveal mode" : "<span aria-hidden='true'>⚑</span> Flag mode";
-    baselineAutoButton.textContent = autoMode === "baseline" ? "■ Stop solver" : "▶ Run solver";
-    modelAutoButton.textContent = autoMode === "model" ? "■ Stop model" : "▶ Run model";
+    baselineAutoButton.textContent = autoMode ? "■ Stop game playing agent" : "▶ Run game playing agent";
   }
 
   function setBusy(value) {
@@ -145,13 +158,16 @@
           (next.outcome.detail ? ": " + next.outcome.detail : "."), "error");
       } else if (next.event && next.event.action) {
         const move = next.event.action;
-        const who = next.trace.length ? next.trace[next.trace.length - 1].actor : "Player";
+        const actor = next.trace.length ? next.trace[next.trace.length - 1].actor : "";
+        const who = actor === "baseline" ? "Game playing agent" :
+          actor === "model" ? "Model agent" : actor === "human" ? "You" : "Player";
         const verb = move.type === "flag" ? "flagged" : "revealed";
         say(who + " " + verb + " hex " + move.q + "," + move.r + ".");
       } else if (next.outcome.detail) {
         say(next.outcome.detail, "error");
       }
     }).catch(function (error) {
+      if (autoMode === "model") stopAuto();
       say(error.message, "error");
     }).finally(function () {
       setBusy(false);
@@ -184,9 +200,15 @@
   }
 
   function newGame() {
+    if (busy) return;
+    const selectedSize = boardSizeSelect.value;
     stopAuto();
     setBusy(true);
-    requestJson("/api/reset", {})
+    say("Starting " + selectedSize + " board…");
+    requestJson("/api/reset", {
+      size: selectedSize,
+      model_playback_enabled: modelRecordingMode
+    })
       .then(function (next) {
         render(next);
         say("New board ready. Your first reveal is safe.");
@@ -197,21 +219,34 @@
 
   function autoStep() {
     if (!autoMode || !state || state.outcome.terminal || busy) return;
-    const mode = autoMode;
-    const route = mode === "baseline" ? "/api/baseline/step" : "/api/model/step";
-    const label = mode === "baseline" ? "Constraint solver is reasoning…" : "Model is choosing a legal move…";
+    const isModel = autoMode === "model";
+    const route = isModel ? "/api/model/step" : "/api/baseline/step";
+    const label = isModel ? "Model agent is choosing a move…" : "Game playing agent is finding a move…";
     runAction(route, { session: state.session }, label).then(function () {
       if (autoMode && state && state.outcome.terminal) stopAuto();
     });
   }
 
-  function toggleAuto(mode) {
-    if (autoMode === mode) {
+  function toggleAuto() {
+    if (autoMode) {
       stopAuto();
       say("Auto-play stopped.");
       return;
     }
-    autoMode = mode;
+    autoMode = "baseline";
+    updateButtons();
+    autoStep();
+  }
+
+  function toggleModelPlayback() {
+    if (!modelRecordingMode || !state || busy || state.outcome.terminal) return;
+    if (autoMode === "model") {
+      stopAuto();
+      say("Live model playback stopped.");
+      return;
+    }
+    stopAuto();
+    autoMode = "model";
     updateButtons();
     autoStep();
   }
@@ -222,37 +257,25 @@
   }
 
   document.getElementById("new-game").addEventListener("click", newGame);
+  boardSizeSelect.addEventListener("change", newGame);
   flagButton.addEventListener("click", function () {
     flagMode = !flagMode;
     updateButtons();
   });
   baselineButton.addEventListener("click", function () {
-    runAction("/api/baseline/step", { session: state.session }, "Constraint solver is reasoning…");
+    runAction("/api/baseline/step", { session: state.session }, "Game playing agent is finding a move…");
   });
-  modelButton.addEventListener("click", function () {
-    runAction("/api/model/step", { session: state.session }, "Model is choosing a legal move…");
-  });
-  baselineAutoButton.addEventListener("click", function () { toggleAuto("baseline"); });
-  modelAutoButton.addEventListener("click", function () { toggleAuto("model"); });
+  baselineAutoButton.addEventListener("click", toggleAuto);
+  modelPlaybackButton.addEventListener("click", toggleModelPlayback);
   window.addEventListener("resize", function () { if (state) render(state); });
 
-  requestJson("/api/status").then(function (info) {
-    const label = document.getElementById("agent-config");
-    modelButton.dataset.available = String(info.model_key_configured);
-    modelAutoButton.dataset.available = String(info.model_key_configured);
-    if (info.model_key_configured) {
-      label.textContent = "Model ready · " + info.model;
-      label.classList.add("available");
-    } else {
-      label.textContent = "Model needs OPENAI_API_KEY in your local environment";
-      modelButton.title = "Set OPENAI_API_KEY before starting the local server";
-    }
-    updateButtons();
-  }).catch(function () {
-    document.getElementById("agent-config").textContent = "Local game server status unavailable";
-  });
+  if (modelRecordingMode) {
+    document.getElementById("agent-description-title").textContent = "Live model player.";
+    document.getElementById("agent-description").textContent =
+      "It receives the public board and legal actions, then submits its own moves through the game interface.";
+  }
 
-  requestJson("/api/reset", {})
+  requestJson("/api/reset", { model_playback_enabled: modelRecordingMode })
     .then(function (initial) {
       render(initial);
       say("Choose a hex to reveal it. Right-click or use Flag mode to place a flag.");

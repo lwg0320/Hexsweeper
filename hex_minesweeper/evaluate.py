@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import subprocess
 import sys
 import time
 from typing import Any
@@ -15,9 +16,28 @@ from .runner import EpisodeRunner
 OPENING = (0, 0)
 
 
+def repository_version() -> tuple[str, bool | None]:
+    """Return the Git revision and whether the current working tree is dirty."""
+    try:
+        revision = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+        ).stdout
+        return revision, bool(status.strip())
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown", None
+
+
 def play(policy: str, seed: int | str) -> dict[str, Any]:
     runner = EpisodeRunner(seed, fixed_opening=OPENING)
-    model = ModelAgent() if policy == "model" else None
+    history_mode = "bounded" if policy == "model-history" else "observation_only"
+    model = ModelAgent(history_mode=history_mode) if policy != "baseline" else None
     started = time.monotonic()
     while not runner.outcome()["terminal"]:
         if policy == "baseline":
@@ -42,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--trials", type=int, default=2,
                         help="repeat each paired seed this many times")
     parser.add_argument("--players", default="baseline,model",
-                        help="comma-separated players: baseline,model")
+                        help="comma-separated players: baseline,model,model-history (last 8 public actions)")
     args = parser.parse_args(argv)
     if args.trials < 1:
         parser.error("--trials must be at least 1")
@@ -50,17 +70,25 @@ def main(argv: list[str] | None = None) -> int:
     players = [item.strip() for item in args.players.split(",") if item.strip()]
     if not seeds:
         parser.error("--seeds must contain at least one seed")
-    if not players or any(player not in ("baseline", "model") for player in players):
-        parser.error("--players must contain baseline and/or model")
+    allowed_players = ("baseline", "model", "model-history")
+    if not players or any(player not in allowed_players for player in players):
+        parser.error("--players must contain baseline, model, and/or model-history")
+    game_version, working_tree_dirty = repository_version()
     print(json.dumps({
         "kind": "evaluation_header",
         "date_utc": datetime.now(timezone.utc).isoformat(),
+        "game_version": game_version,
+        "working_tree_dirty": working_tree_dirty,
         "seeds": seeds,
         "trials_per_seed": args.trials,
         "fixed_opening": {"q": OPENING[0], "r": OPENING[1]},
         "max_steps": 80,
         "max_model_calls": 80,
         "model_timeout_seconds": 20,
+        "model_history_modes": {
+            "model": "observation_only",
+            "model-history": "last 8 public actions/results",
+        },
         "pricing": pricing_metadata(),
     }))
     for seed in seeds:

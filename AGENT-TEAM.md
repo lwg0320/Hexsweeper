@@ -1,25 +1,13 @@
 # Agent team log
 
-This is a factual implementation record prepared from the current project session. The student-authored reflection section is intentionally left for the student to complete in their own voice before submission.
+Factual scaffold only. Rewrite the full one-page log in your own voice before submission. Keep the access boundaries and evidence links; do not submit this agent-written text as your account.
 
-## Implementation record
-
-| Agent / role | Access and actions | Recommendation or result |
+| Role | Access and evidence | Recommendation / result and decision |
 |---|---|---|
-| Codex implementation session | Read and wrote project files, ran deterministic checks, read public manuals and the Atari EULA, and verified the local browser UI; used no Atari code or assets. | Built the game engine, local website, constraint-solving baseline, model API adapter, reusable player skill, tests, runner, and evaluation plan. |
-| Hex Minesweeper model player | Receives only a public observation, legal actions, and the reusable skill text. It gets one choose_move tool and no file, shell, web, or evaluator tools. | Selects a reveal or flag action; the runner validates it and records usage and failures. |
-| Independent reviewer | Completed a read-only audit and did not write implementation code. The written report is in agent/REVIEW.md. | Confirmed the seed leak and final-call ordering fixes, found no direct preterminal mine/seed leak, and listed live evaluation, peer playtest, recording, and tag/fresh-clone evidence as remaining. |
+| Codex implementation agent | Could read/write project files, run local commands, research public sources, and use localhost UI. Session: [Codex task](codex://threads/01a1784c-e42f-7693-89c6-59e3cc607cd9); instructions: [AGENTS.md](AGENTS.md). | Recommended a small ruleset and private server state. Accepted; I added map sizes and kept live model controls in recording mode while leaving the ordinary page with the deterministic agent. |
+| Reusable skill / gameplay agent | [`hex-minesweeper-player`](hex_minesweeper/skills/hex-minesweeper-player/SKILL.md) sees public observations and legal actions; the bounded variant also sees up to eight public actions/results. One `choose_move` tool; no repository, shell, web, or evaluator tools. Config: [agent/config.json](agent/config.json); session log: [agent/skill-usage.md](agent/skill-usage.md). | Guides reveal/flag decisions from visible clues. The runner validates moves. Two separate skill-use sessions still need links. |
+| Independent reviewer | Separate read-only Codex subagent; did not write implementation code. Prompt: [agent/independent-review.md](agent/independent-review.md); findings and follow-up: [agent/REVIEW.md](agent/REVIEW.md); standalone review-session link not recorded. | Found no direct preterminal seed/mine leak; recommended a recording-session API gate, a strict eight-action history cap, and clearer map-size wording. I accepted those fixes. The report identifies the remaining live and student-authored evidence. |
 
-## Decisions implemented
+## Student-authored account — required; rewrite the full log above
 
-- A radius-3 filled hex board, 6 mines, six-neighbor clues, flags, zero-region opening, and a safe first reveal.
-- One single-player board ends when a mine is revealed or all safe cells are revealed. No extra game mechanics were added.
-- Model play is server-side so the API key never enters the browser. The browser and model use the same game interface.
-- The model receives no seed or hidden mine map. Invalid model actions terminate as failures; no fallback is presented as model play.
-- A deterministic constraint solver is the baseline. Evaluation uses shared fixed openings so each player starts a paired trial on the same board.
-- The declared baseline smoke run won all three first-suite cases in 12, 14, and 16 actions; the full trace is preserved under `evaluation/`.
-- The runner enforces both action/call caps and a wall-clock timeout. A timed-out provider worker cannot alter the terminal game state, though the remote request itself cannot be cancelled after it starts.
-
-## Student-authored reflection — complete before submission
-
-Write this section yourself. In your own words, state what you asked the implementation agent to build, which recommendations you accepted or changed, what you learned from the independent review and peer playtest, and what limitations you chose to disclose. Include links to the review report, peer notes, recording, and evaluation traces.
+In your own voice, say what you asked for, what each role could access, what it recommended, what you accepted or changed and why, what you learned from the review and actual peer notes, and which limits you chose to disclose. Keep it to one page and link sessions, review, peer notes, recording, and evaluation traces. See [checklist](agent/submission-checklist.md).
