@@ -90,7 +90,7 @@ Set OPENAI_API_KEY before a live run. The evaluator prints JSON Lines with seed,
 
 ## CI
 
-The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it runs deterministic tests and checks browser JavaScript from `midterms/lwg0320/`, without secrets or live model calls. The general `.github/workflows/ci.yml` belongs to this standalone development repository and should not be added to the course PR.
+The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it runs deterministic tests and checks browser JavaScript from `midterms/lwg0320/`, without secrets or live model calls. It pins Ubuntu 24.04 so the Python 3.8 matrix remains available. The general `.github/workflows/ci.yml` belongs to this standalone development repository and should not be added to the course PR.
 
 ## Team, playtest, and submission evidence
 
