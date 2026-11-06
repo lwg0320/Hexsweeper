@@ -101,7 +101,7 @@ The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it ru
 - The independent read-only review is recorded in [agent/REVIEW.md](agent/REVIEW.md). It found no direct preterminal mine/seed leak and lists the remaining evidence gaps.
 - Three separate peer activities are tracked: playtesting a partner's game during the week of November 2 and sharing notes by November 6 ([PARTNER-PLAYTEST-NOTES.md](PARTNER-PLAYTEST-NOTES.md)); a friend has played all three Hexsweeper sizes while the observer watched without helping ([PLAYTEST-NOTES.md](PLAYTEST-NOTES.md)); and the later three-classmate silent review ([SILENT-PEER-REVIEWS.md](SILENT-PEER-REVIEWS.md)).
 - The recording-only model view is available at `/?recording=model`; the ordinary game page keeps only the **Game playing agent** controls. Starting live model playback sends provider requests and may incur cost.
-- A 3–5 minute recording, live model results, and the course-repository pull request remain submission work. No live provider key or human playtest notes were available during implementation, so no results are claimed here.
+- The human playtest notes are in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md). Live model results, a 3–5 minute recording, and the course-repository pull request remain submission work; no model results are claimed here.
 
 ## Recording
 

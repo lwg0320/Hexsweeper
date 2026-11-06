@@ -32,7 +32,7 @@ The held-out seeds are reserved for final evaluation and must not be used for pr
 - Episode limits: 80 actions, 80 model calls, 20 seconds per call. Failed calls count. Invalid model actions end the episode and are reported; there is no fallback.
 - Primary outcome: win, loss, or incomplete terminal reason. Also report score, illegal actions, calls, action count, latency, input/output tokens, and failures.
 - Cost: report dated per-million token prices used for the model on the evaluation date. Configure HEXSWEEPER_INPUT_USD_PER_MILLION, HEXSWEEPER_OUTPUT_USD_PER_MILLION, HEXSWEEPER_PRICING_AS_OF, and HEXSWEEPER_PRICING_SOURCE; if any are absent or rates are invalid, the runner reports cost as unknown. Evaluation JSONL records the declared pricing provenance.
-- Human playtest and model recording: required before submission; no peer notes or recording are represented as completed in this file.
+- The human playtest of Hexsweeper is summarized in Limitations below and documented in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md). Partner-game notes and the model recording are separate and still pending.
 
 ## Comparison table
 

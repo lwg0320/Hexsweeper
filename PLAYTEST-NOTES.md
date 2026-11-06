@@ -5,16 +5,20 @@ This records a friend playing the Hexsweeper build. The player is anonymous.
 ## Session
 
 - Date and game version/commit: Not recorded
-- Map size: Small, medium, and large
 - Player: Anonymous friend
 - Observer: Student author
 - Did the observer avoid helping? Yes
 
-## What happened
+## What the player tried
 
-- The player tried all three map sizes.
-- The player hesitated when an early reveal provided little information.
-- The player described the game as relatively easy.
+- Small: played; no separate size-specific feedback was recorded.
+- Medium: played; no separate size-specific feedback was recorded.
+- Large: played; no separate size-specific feedback was recorded.
+
+## Observations across the session
+
+- The player hesitated after an early reveal provided little information. The notes did not identify which size this happened on.
+- The player described the game as relatively easy. The notes did not identify a size-specific difficulty difference.
 - No episode outcome or session duration was provided.
 
 ## Reflection
