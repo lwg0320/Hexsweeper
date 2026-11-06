@@ -8,19 +8,28 @@ A small Minesweeper recreation on a hex board, with six-neighbor clues, flags, s
 
 Each episode uses a seeded map: small has 19 hexes and 3 mines, medium has 37 hexes and 6 mines, and large has 61 hexes and 10 mines. All use the same six-neighbor rules and safe first reveal. A clue counts mines in the six adjacent hexes. Revealing a mine loses; revealing every safe hex wins. A flag is only a marker and is not required for victory.
 
-The intentional rule adaptation is using a hexagon with six neighbors instead of a rectangular grid with eight neighbors. Map sizes are project choices that change only board radius and mine count; there are no added game modes, power-ups, timers, or scoring rules. The complete rule map and evidence labels are in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md).
+The intentional rule adaptation is using a hexagon with six neighbors instead of a rectangular grid with eight neighbors. Map sizes are project choices that change only board radius and mine count; there are no added game modes, power-ups, timers, or scoring rules.
+
+## Rule/source map
+
+The complete rule-by-rule map is in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md). It labels inherited rules as `manual`, implementation behavior as `code` or `observed`, unverified inferences as `assumed`, and project choices or adaptations as `design`, with evidence locators for each row.
 
 If the scope had to shrink further, remove the small and large presets first and keep the medium-board game loop and player interface. This replaces the earlier Poolshark direction; update the Week 3 thread to point to this current scope. A draft with an acceptance-trace link is in [WEEK3-SCOPE-UPDATE.md](WEEK3-SCOPE-UPDATE.md).
 
-## Requirements
+## Setup
 
-- Python 3.8 or newer
-- No Python packages are needed to play or run deterministic tests
-- An OpenAI API key is needed only for live model play; the key stays in the local server environment and is never sent to the browser
+- Python 3.8 or newer is required.
+- No third-party Python packages need to be installed; the game uses the standard library.
+- For every command below, the working directory in the course repository is `midterms/lwg0320/`. In this development checkout, use the repository root.
+- An OpenAI API key is needed only for live model play. Keep it in the local server environment; it is never sent to the browser.
+
+Confirm the Python installation from the project working directory:
+
+    python3 --version
 
 ## Run the website
 
-From the project root (`midterms/lwg0320/` in the course repository; repository root in this development checkout):
+Working directory: `midterms/lwg0320/` in the course repository (repository root in this development checkout):
 
     python3 -m hex_minesweeper.server
 
@@ -32,12 +41,12 @@ The game runs locally because its server keeps authoritative state private and p
 
 The website's **Game playing agent** works without a model key. Use it for one move or select **Run game playing agent** to let it play. The model player remains available to the evaluation runner; its controls are not shown on the game page.
 
-For live model play through the recording-only page, run this from the project root after setting the API key in the local environment. Ordinary sessions cannot call the model endpoint; model play requires a session opened in recording mode. Do not paste the key into project files:
+Working directory: `midterms/lwg0320/` in the course repository (repository root in this development checkout). For live model play through the recording-only page, set the key in the local environment before starting the server. Ordinary sessions cannot call the model endpoint; model play requires a session opened in recording mode. Do not paste the key into project files:
 
     export OPENAI_API_KEY=your_key
     python3 -m hex_minesweeper.server
 
-For paired evaluation instead, run this from the project root in a separate terminal with the key set there:
+For paired evaluation, use a separate terminal with the key set there. Working directory: `midterms/lwg0320/` in the course repository (repository root in this development checkout):
 
     export OPENAI_API_KEY=your_key
     python3 -m hex_minesweeper.evaluate --seeds 1401,1402,1403 --trials 2
@@ -68,7 +77,7 @@ The reusable player instructions are in hex_minesweeper/skills/hex-minesweeper-p
 
 ## Test
 
-From the project root:
+Working directory: `midterms/lwg0320/` in the course repository (repository root in this development checkout):
 
     python3 -m unittest discover -s tests -v
 
@@ -76,7 +85,7 @@ The suite checks hex geometry, seeded board behavior, first-click safety, clue/z
 
 ## Evaluate
 
-The suite and held-out cases were declared before live model tuning in [EVALUATION.md](EVALUATION.md). Run these commands from the project root. A baseline-only run needs no API key:
+The suite and held-out cases were declared before live model tuning in [EVALUATION.md](EVALUATION.md). Working directory for all commands in this section: `midterms/lwg0320/` in the course repository (repository root in this development checkout). A baseline-only run needs no API key:
 
     python3 -m hex_minesweeper.evaluate --players baseline --seeds 1401,1402,1403 --trials 1
 
@@ -88,7 +97,11 @@ To compare the observation-only model with its bounded-history variant on the sa
 
     python3 -m hex_minesweeper.evaluate --players baseline,model,model-history --seeds 1401,1402,1403 --trials 2
 
-Set OPENAI_API_KEY before a live run. The evaluator prints JSON Lines with seed, player, outcome, limits, invalid moves, latency, token usage, estimated cost when rates are configured, and a full trace. Repeat for held-out seeds with --seeds 9101,9102; do not tune the prompt on those cases.
+Run the same players on the held-out seeds, which must not be used for prompt tuning:
+
+    python3 -m hex_minesweeper.evaluate --players baseline,model,model-history --seeds 9101,9102 --trials 2
+
+Set OPENAI_API_KEY before a live run. The evaluator prints JSON Lines with seed, player, outcome, limits, invalid moves, latency, token usage, estimated cost when rates are configured, and a full trace.
 
 ## CI
 
@@ -109,4 +122,4 @@ Pending: add the accessible 3–5 minute recording link here and in the course P
 
 ## Reuse
 
-This project is newly written and does not copy the Atari Poolshark repository, Minesweeper source code, or third-party assets. The [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md) credits its Minesweeper rules source and records that the user-provided Atari EULA was checked and no Atari content was reused. The project code is licensed under MIT; see [LICENSE](LICENSE).
+This project is newly written and does not copy the Atari Poolshark repository, Minesweeper source code, or third-party assets. The [KMines Handbook](https://docs.kde.org/trunk_kf6/en/kmines/kmines/kmines.pdf), chapters 2–3, is credited for the general Minesweeper rules; no handbook text or code is copied. The user-provided [Atari End User License Agreement](https://atari.com/pages/end-user-license-agreement) was checked on 2026-10-26; no Atari code, ROM, assets, or branding are used. The project code is licensed under MIT; see [LICENSE](LICENSE). The [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md) gives the full rule-by-rule source labels, locators, assumptions, design choices, omissions, and source/reuse notes.
