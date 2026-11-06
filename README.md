@@ -14,7 +14,7 @@ The intentional rule adaptation is using a hexagon with six neighbors instead of
 
 The complete rule-by-rule map is in [RULE_SOURCE_MAP.md](RULE_SOURCE_MAP.md). It labels inherited rules as `manual`, implementation behavior as `code` or `observed`, unverified inferences as `assumed`, and project choices or adaptations as `design`, with evidence locators for each row.
 
-If the scope had to shrink further, remove the small and large presets first and keep the medium-board game loop and player interface. This replaces the earlier Poolshark direction; update the Week 3 thread to point to this current scope. A draft with an acceptance-trace link is in [WEEK3-SCOPE-UPDATE.md](WEEK3-SCOPE-UPDATE.md).
+This scope replaces the earlier Poolshark direction with a small hex-grid Minesweeper adaptation. If scope had to shrink further, remove the small and large presets first and keep the medium-board game loop and player interface.
 
 ## Setup
 
