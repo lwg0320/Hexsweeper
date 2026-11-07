@@ -11,14 +11,12 @@ This records a friend playing the Hexsweeper build. The player is anonymous.
 
 ## What the player tried
 
-- Small: played; no separate size-specific feedback was recorded.
-- Medium: played; no separate size-specific feedback was recorded.
-- Large: played; no separate size-specific feedback was recorded.
+- Played the small, medium, and large boards.
+- Made an early reveal/guess that gave little information, then hesitated about what to do next. The notes do not identify which board size this happened on or capture the exact move sequence.
 
 ## Observations across the session
 
-- The player hesitated after an early reveal provided little information. The notes did not identify which size this happened on.
-- The player described the game as relatively easy. The notes did not identify a size-specific difficulty difference.
+- The player said the game was relatively easy. The notes do not identify a size-specific difficulty difference.
 - No episode outcome or session duration was provided.
 
 ## Reflection

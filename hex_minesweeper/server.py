@@ -12,8 +12,11 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .game import BOARD_PRESETS, IllegalAction
-from .model_agent import ModelCallError
+from .config import load_project_env
+from .model_agent import DEFAULT_MODEL, ModelCallError
 from .runner import EpisodeRunner
+
+load_project_env()
 
 ROOT = Path(__file__).resolve().parent
 SESSIONS: dict[str, EpisodeRunner] = {}
@@ -26,13 +29,20 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, directory=str(ROOT / "static"), **kwargs)
 
+    def end_headers(self) -> None:
+        # The UI is a local development app; keep clients from reusing stale JS
+        # that can speak an older API to the current backend after a restart.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/status":
             self._send_json(200, {
                 "ok": True,
-                "model": os.environ.get("HEXSWEEPER_MODEL", "gpt-6-astra"),
-                "model_key_configured": bool(os.environ.get("OPENAI_API_KEY")),
+                "provider": "Anthropic Claude API",
+                "model": os.environ.get("HEXSWEEPER_MODEL", DEFAULT_MODEL),
+                "model_key_configured": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
                 "max_steps": 80,
                 "max_model_calls": 80,
                 "model_timeout_seconds": 20,
@@ -68,15 +78,10 @@ class Handler(SimpleHTTPRequestHandler):
                 if not isinstance(board_size, str) or board_size not in BOARD_PRESETS:
                     self._send_json(400, {"error": "size must be small, medium, or large"})
                     return
-                model_playback_enabled = body.get("model_playback_enabled", False)
-                if not isinstance(model_playback_enabled, bool):
-                    self._send_json(400, {"error": "model_playback_enabled must be a boolean"})
-                    return
                 session_id = secrets.token_urlsafe(18)
                 runner = EpisodeRunner(
                     seed,
                     board_size=board_size,
-                    model_playback_enabled=model_playback_enabled,
                 )
                 with SESSIONS_LOCK:
                     SESSIONS[session_id] = runner
@@ -107,10 +112,14 @@ class Handler(SimpleHTTPRequestHandler):
                     transition = runner.baseline_step()
                     self._send_json(200, self._state_payload(session_id, runner, transition))
                     return
+                if parsed.path == "/api/model/enable":
+                    runner.model_api_enabled = True
+                    self._send_json(200, {"enabled": True})
+                    return
                 if parsed.path == "/api/model/step":
-                    if not self._model_playback_allowed(runner):
+                    if not self._model_api_allowed(runner):
                         self._send_json(403, {
-                            "error": "Live model playback is available only in recording mode."
+                            "error": "Enable the Claude API agent for this game before requesting a move."
                         })
                         return
                     transition = runner.model_step()
@@ -148,8 +157,8 @@ class Handler(SimpleHTTPRequestHandler):
             return SESSION_GUARDS.get(session_id)
 
     @staticmethod
-    def _model_playback_allowed(runner: EpisodeRunner) -> bool:
-        return runner.model_playback_enabled
+    def _model_api_allowed(runner: EpisodeRunner) -> bool:
+        return runner.model_api_enabled
 
     @staticmethod
     def _state_payload(
@@ -172,7 +181,6 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(encoded)
 

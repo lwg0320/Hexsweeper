@@ -1,10 +1,10 @@
 # Recording checklist
 
-Before recording, start the server with the live model key configured and open `http://127.0.0.1:8000/?recording=model`. That URL exposes a recording-only **Start live model playback** control; the normal page keeps model controls hidden. The moves happen automatically after you click it. Do not manually choose or submit them. Each move makes a provider call and may incur cost.
+This recording shows the website's deterministic **Game playing agent**. It does not require a live model API. From the project root, start the server with `python3 -m hex_minesweeper.server`, open `http://127.0.0.1:8000`, select a map size, and choose **Run game playing agent**. Let the agent make every move automatically; do not manually choose or submit moves. The main page also offers a separate Claude API agent; do not use or describe that player as the deterministic agent in this video.
 
 - Keep the recording between three and five minutes.
-- Show the game, explain the hex clues and selected map size, and show the model agent choosing and submitting actions.
-- Identify which agent is playing. Do not present the deterministic baseline as the model-driven player.
-- State the run's step, model-call, and timeout limits, and explain any failure or incomplete outcome honestly.
-- Avoid showing API keys, private credentials, hidden answer data, or a playtester's identity.
+- Show the game, explain the hex clues and selected map size, and show the Game playing agent choosing and submitting actions.
+- Identify it accurately as the deterministic constraint-solving agent. Do not call it an LLM or model-driven player.
+- State its limits: it sees only the public board, can guess when the clues do not force a move, and runs under the game's 80-action episode limit. Explain any failure or incomplete outcome honestly.
+- Avoid showing hidden answer data or a playtester's identity.
 - Add a link viewable by the instructor, TAs, and assigned peer reviewers to both `README.md` and the PR description.

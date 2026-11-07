@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from queue import Empty, Queue
+import random
 from threading import Thread
 import time
 from typing import Any, Callable
@@ -29,14 +30,20 @@ class EpisodeRunner:
     steps: int = 0
     model_calls: int = 0
     illegal_actions: int = 0
+    fallback_actions: int = 0
     terminal_override: dict[str, Any] | None = None
     trace: list[dict[str, Any]] = field(default_factory=list)
-    usage: dict[str, int] = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
+    usage: dict[str, int] = field(default_factory=lambda: {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+    })
     latency_ms: list[int] = field(default_factory=list)
     estimated_cost_usd: float | None = 0.0
     model_name: str | None = None
     model_history_mode: str | None = None
-    model_playback_enabled: bool = False
+    model_api_enabled: bool = False
 
     def __post_init__(self) -> None:
         if self.board_size is not None:
@@ -111,7 +118,7 @@ class EpisodeRunner:
         return self._apply(action, "baseline", count_step=False)
 
     def model_step(self, agent: ModelAgent | None = None) -> dict[str, Any]:
-        """Make one live provider call, validate its move, and apply it."""
+        """Request a move, retry one invalid selection, then safely fall back."""
         if self.outcome()["terminal"]:
             return self.snapshot()
         if self.steps >= self.max_steps:
@@ -129,86 +136,158 @@ class EpisodeRunner:
             raise ValueError("model agent history_mode must be observation_only or bounded")
         history_limit = getattr(agent, "history_limit", MAX_PUBLIC_HISTORY)
         public_history = self._public_history(history_limit) if history_mode == "bounded" else None
-        self.model_calls += 1
-        self.steps += 1  # A failed model turn still consumes a step budget.
         self.model_name = agent.model
         self.model_history_mode = history_mode
-        started = time.monotonic()
-        result_queue: Queue[tuple[str, Any]] = Queue(maxsize=1)
+        rejected_action: dict[str, Any] | None = None
 
-        def request_decision() -> None:
+        for attempt in (1, 2):
+            if attempt == 2 and (
+                self.steps >= self.max_steps or self.model_calls >= self.max_model_calls
+            ):
+                return self._apply_random_fallback(
+                    actions, reason="retry_limit_reached", attempts=attempt - 1
+                )
+
+            self.model_calls += 1
+            self.steps += 1  # Each failed attempt consumes both episode budgets.
+            started = time.monotonic()
+            result_queue: Queue[tuple[str, Any]] = Queue(maxsize=1)
+            rejected_for_attempt = rejected_action
+
+            def request_decision() -> None:
+                try:
+                    kwargs: dict[str, Any] = {}
+                    if public_history is not None:
+                        kwargs["history"] = public_history
+                    if rejected_for_attempt is not None and isinstance(agent, ModelAgent):
+                        kwargs["rejected_action"] = rejected_for_attempt
+                    decision = agent.choose_action(observation, actions, **kwargs)
+                    result_queue.put(("decision", decision))
+                except Exception as error:
+                    result_queue.put(("error", error))
+
+            Thread(target=request_decision, name="hex-minesweeper-model-call", daemon=True).start()
             try:
-                if public_history is None:
-                    decision = agent.choose_action(observation, actions)
-                else:
-                    decision = agent.choose_action(observation, actions, history=public_history)
-                result_queue.put(("decision", decision))
-            except Exception as error:
-                result_queue.put(("error", error))
+                kind, result = result_queue.get(timeout=self.model_timeout_seconds)
+            except Empty:
+                elapsed = int((time.monotonic() - started) * 1000)
+                self.latency_ms.append(elapsed)
+                self._add_usage(0, 0, None)
+                detail = "Model call exceeded the {:.3g} second deadline.".format(
+                    self.model_timeout_seconds
+                )
+                self.trace.append({
+                    "actor": "model",
+                    "error": detail,
+                    "latency_ms": elapsed,
+                    "model_call": self.model_calls,
+                    "model_attempt": attempt,
+                    "usage_unknown": True,
+                })
+                if attempt == 2 and rejected_for_attempt is not None:
+                    return self._apply_random_fallback(
+                        actions, reason="retry_timeout", attempts=attempt
+                    )
+                self.terminal_override = self._limited_outcome(
+                    "model_timeout", detail=detail, actor="model"
+                )
+                return self.snapshot()
 
-        Thread(target=request_decision, name="hex-minesweeper-model-call", daemon=True).start()
-        try:
-            kind, result = result_queue.get(timeout=self.model_timeout_seconds)
-        except Empty:
+            if kind == "error":
+                error = result
+                if not isinstance(error, ModelCallError):
+                    error = ModelCallError("Model call failed: " + str(error))
+                elapsed = int((time.monotonic() - started) * 1000)
+                self.latency_ms.append(elapsed)
+                self._add_usage(
+                    error.input_tokens,
+                    error.output_tokens,
+                    error.estimated_cost_usd,
+                    error.cache_creation_input_tokens,
+                    error.cache_read_input_tokens,
+                )
+                self.trace.append({
+                    "actor": "model",
+                    "error": str(error),
+                    "latency_ms": elapsed,
+                    "model_call": self.model_calls,
+                    "model_attempt": attempt,
+                    **self._model_usage_fields(error),
+                })
+                if attempt == 2 and rejected_for_attempt is not None:
+                    return self._apply_random_fallback(
+                        actions, reason="retry_error", attempts=attempt
+                    )
+                reason = "model_timeout" if error.timed_out else "model_error"
+                self.terminal_override = self._limited_outcome(
+                    reason, detail=str(error), actor="model"
+                )
+                return self.snapshot()
+
+            decision = result
             elapsed = int((time.monotonic() - started) * 1000)
             self.latency_ms.append(elapsed)
-            self._add_usage(0, 0, None)
-            detail = "Model call exceeded the {:.3g} second deadline.".format(
-                self.model_timeout_seconds
+            self._add_usage(
+                decision.input_tokens,
+                decision.output_tokens,
+                decision.estimated_cost_usd,
+                decision.cache_creation_input_tokens,
+                decision.cache_read_input_tokens,
             )
-            self.terminal_override = self._limited_outcome(
-                "model_timeout", detail=detail, actor="model"
-            )
-            self.trace.append({
-                "actor": "model",
-                "error": detail,
-                "latency_ms": elapsed,
-                "model_call": self.model_calls,
-            })
-            return self.snapshot()
-        if kind == "error":
-            error = result
-            if not isinstance(error, ModelCallError):
-                error = ModelCallError("Model call failed: " + str(error))
-            elapsed = int((time.monotonic() - started) * 1000)
-            self.latency_ms.append(elapsed)
-            self._add_usage(error.input_tokens, error.output_tokens, error.estimated_cost_usd)
-            reason = "model_timeout" if error.timed_out else "model_error"
-            self.terminal_override = self._limited_outcome(
-                reason, detail=str(error), actor="model"
-            )
-            self.trace.append({
-                "actor": "model",
-                "error": str(error),
-                "latency_ms": elapsed,
-                "model_call": self.model_calls,
-            })
-            return self.snapshot()
+            if not self._is_legal_model_action(decision.action, actions):
+                self.illegal_actions += 1
+                self.trace.append({
+                    "actor": "model",
+                    "action": decision.action,
+                    "error": "invalid_model_action",
+                    "latency_ms": elapsed,
+                    "model_call": self.model_calls,
+                    "model_attempt": attempt,
+                    **self._model_usage_fields(decision),
+                })
+                if attempt == 1:
+                    rejected_action = (
+                        dict(decision.action)
+                        if isinstance(decision.action, dict)
+                        else {"invalid_action": repr(decision.action)}
+                    )
+                    continue
+                return self._apply_random_fallback(
+                    actions, reason="second_invalid_action", attempts=attempt
+                )
 
-        decision = result
-
-        elapsed = int((time.monotonic() - started) * 1000)
-        self.latency_ms.append(elapsed)
-        self._add_usage(
-            decision.input_tokens, decision.output_tokens, decision.estimated_cost_usd
-        )
-        if decision.action not in actions:
-            self.illegal_actions += 1
-            self.terminal_override = self._limited_outcome(
-                "invalid_model_action", detail="model selected an action outside legal_actions",
-                actor="model",
-            )
-            self.trace.append({
-                "actor": "model",
-                "action": decision.action,
-                "error": "invalid_model_action",
-                "latency_ms": elapsed,
+            result = self._apply(decision.action, "model", count_step=False)
+            self.trace[-1].update({
                 "model_call": self.model_calls,
-                "input_tokens": decision.input_tokens,
-                "output_tokens": decision.output_tokens,
+                "model_attempt": attempt,
+                "latency_ms": elapsed,
+                **self._model_usage_fields(decision),
             })
+            if attempt == 2:
+                self.trace[-1]["retried_after_invalid_action"] = True
+            result["metrics"] = self.metrics()
+            return result
+
+        return self.snapshot()
+
+    def _apply_random_fallback(
+        self, actions: list[dict[str, Any]], reason: str, attempts: int
+    ) -> dict[str, Any]:
+        """Apply a seeded-random legal move so fallback runs remain reproducible."""
+        if not actions:
+            self.terminal_override = self._limited_outcome(
+                "invalid_model_action", detail="no legal action was available for fallback",
+                actor="random_fallback",
+            )
             return self.snapshot()
-        result = self._apply(decision.action, "model", count_step=False)
+        rng = random.Random("{}|{}|{}".format(self.seed, self.steps, self.model_calls))
+        action = dict(actions[rng.randrange(len(actions))])
+        self.fallback_actions += 1
+        result = self._apply(action, "random_fallback", count_step=False)
+        self.trace[-1].update({
+            "fallback_reason": reason,
+            "model_attempts": attempts,
+        })
         result["metrics"] = self.metrics()
         return result
 
@@ -238,15 +317,44 @@ class EpisodeRunner:
             "metrics": self.metrics(),
         }
 
+    @staticmethod
+    def _is_legal_model_action(action: Any, legal_actions: list[dict[str, Any]]) -> bool:
+        """Require an exact action shape before Python equality checks legality."""
+        if not isinstance(action, dict) or set(action) != {"type", "q", "r"}:
+            return False
+        if type(action["type"]) is not str or action["type"] not in ("reveal", "flag"):
+            return False
+        # bool is an int subclass, and 1.0 compares equal to 1 in dictionaries.
+        if type(action["q"]) is not int or type(action["r"]) is not int:
+            return False
+        return action in legal_actions
+
     def _add_usage(
-        self, input_tokens: int, output_tokens: int, estimated_cost_usd: float | None
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        estimated_cost_usd: float | None,
+        cache_creation_input_tokens: int = 0,
+        cache_read_input_tokens: int = 0,
     ) -> None:
         self.usage["input_tokens"] += input_tokens
         self.usage["output_tokens"] += output_tokens
+        self.usage["cache_creation_input_tokens"] += cache_creation_input_tokens
+        self.usage["cache_read_input_tokens"] += cache_read_input_tokens
         if estimated_cost_usd is None:
             self.estimated_cost_usd = None
         elif self.estimated_cost_usd is not None:
             self.estimated_cost_usd += estimated_cost_usd
+
+    @staticmethod
+    def _model_usage_fields(result: Any) -> dict[str, Any]:
+        return {
+            "input_tokens": result.input_tokens,
+            "output_tokens": result.output_tokens,
+            "cache_creation_input_tokens": result.cache_creation_input_tokens,
+            "cache_read_input_tokens": result.cache_read_input_tokens,
+            "estimated_cost_usd": result.estimated_cost_usd,
+        }
 
     def _limited_outcome(
         self, reason: str, detail: str | None = None, actor: str | None = None
@@ -264,13 +372,24 @@ class EpisodeRunner:
         return result
 
     def metrics(self) -> dict[str, Any]:
+        # Count applied player moves separately from decision steps: invalid
+        # model attempts consume steps but do not change the game state.
+        actions = sum(
+            1 for record in self.trace
+            if record.get("event") is not None
+            and record.get("actor") != "shared_evaluation_opening"
+        )
         return {
+            "actions": actions,
             "steps": self.steps,
             "model_calls": self.model_calls,
             "illegal_actions": self.illegal_actions,
+            "fallback_actions": self.fallback_actions,
             "latency_ms": list(self.latency_ms),
             "input_tokens": self.usage["input_tokens"],
             "output_tokens": self.usage["output_tokens"],
+            "cache_creation_input_tokens": self.usage["cache_creation_input_tokens"],
+            "cache_read_input_tokens": self.usage["cache_read_input_tokens"],
             "estimated_cost_usd": self.estimated_cost_usd,
             "model": self.model_name,
             "model_history_mode": self.model_history_mode,

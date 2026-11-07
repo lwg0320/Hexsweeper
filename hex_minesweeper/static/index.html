@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101712">
   <title>Hex Minesweeper</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261106-6">
 </head>
 <body>
   <div class="page">
@@ -76,13 +76,16 @@
             <span aria-hidden="true">⚑</span> Flag mode
           </button>
           <span class="control-spacer"></span>
-          <button id="baseline-step" class="button button-quiet" type="button">Game playing agent</button>
+          <button id="baseline-step" class="button button-quiet" type="button">Game playing agent: move</button>
+          <button id="model-step" class="button button-quiet" type="button" disabled>Claude API agent: move</button>
         </div>
         <div class="autoplay-row">
           <button id="baseline-auto" class="text-button" type="button">▶ Run game playing agent</button>
-          <button id="model-playback" class="text-button" type="button" hidden>▶ Start live model playback</button>
+          <div class="model-agent-control">
+            <button id="model-auto" class="text-button" type="button" disabled>▶ Run Claude API agent</button>
+            <p id="model-api-note" class="recording-note" role="status" aria-live="polite">No Claude API key found. Please clone the project, copy .env.example to .env, add your key as ANTHROPIC_API_KEY, and restart the server.</p>
+          </div>
         </div>
-        <p id="model-playback-note" class="recording-note" hidden>Recording mode: this makes live provider calls and may use paid API credits. Click Start live model playback only when ready.</p>
         <p id="message" class="message" role="status" aria-live="polite">Choose a hex to reveal it. Right-click or use Flag mode to place a flag.</p>
       </section>
 
@@ -99,8 +102,8 @@
         </article>
         <article class="info-card agent-card">
           <div class="section-kicker">OPTIONAL ASSISTANCE</div>
-          <h3 id="agent-description-title">Let the game playing agent take a turn.</h3>
-          <p id="agent-description">It uses the visible clues to find safe moves and makes a best guess when the clues cannot determine one.</p>
+          <h3 id="agent-description-title">Choose an agent.</h3>
+          <p id="agent-description">The Game playing agent is a local constraint solver. The Claude API agent sends the public board and legal moves to Anthropic, then submits its chosen move. API use may incur charges.</p>
         </article>
       </section>
     </main>
@@ -109,6 +112,6 @@
       <span>Small, medium, and large hex maps</span>
     </footer>
   </div>
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=20261106-7" defer></script>
 </body>
 </html>

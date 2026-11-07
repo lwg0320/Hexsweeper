@@ -1,25 +1,22 @@
-# Independent review report
+# Independent review of current implementation
 
 **Review date:** 2026-11-06
-**Reviewer:** a separate Codex read-only subagent; it did not author or edit implementation code. A standalone Codex CLI/cloud session link was not captured, so add one if the course requires that exact evidence form.
-**Review instructions:** [independent-review.md](independent-review.md)
+**Reviewer session:** [Independent Hexsweeper review](codex://threads/01a1b302-e7fb-7be2-aed4-de5184f40cdb)
+**Reviewer access:** Separate Codex task with the current working tree. It was instructed to read only, make no edits, avoid `.env` and secrets, and make no network or model calls.
+**Prompt:** [independent-review.md](independent-review.md)
 
-## Scope and checks
+The reviewer covered the current Claude integration, public observation/action boundaries, rules and terminal outcomes, retry/fallback and episode limits, prompt cache/token accounting, key-status UI, tests, documentation, and course workflow. It did not test a live provider request. The reported 44-test result was from before the final coordinate-validation test was added.
 
-The reviewer examined the current game/rules interface, runner and limits, model adapter, server routes, browser controls, map sizes, bounded history, tests, evaluation plan, source map, and submission evidence. It checked that preterminal observations and legal actions do not reveal seeds or mine positions; the model sees public observations/actions and, in history mode, only recent public actions/results. It also checked invalid moves, provider errors, timeouts, terminal reasons, recording-mode control wiring, and the README/CI commands.
+## Reviewer findings and author disposition
 
-The reviewer reported no direct preterminal seed or mine leak. The deterministic solver uses the same public interface as the model. Runner limits are explicit: 80 actions, 80 model calls, and a 20-second outer deadline; failed and invalid model turns have explicit outcomes. It noted that a provider worker is not cancelled after timeout and could finish later, although its result cannot mutate runner state and a delayed provider call could still incur cost.
+1. **[P1] API-key bearer authentication.** The reviewer believed `Authorization: Bearer` was invalid for a static Anthropic API key. I did not change this: Anthropic's current [authentication documentation](https://platform.claude.com/docs/en/manage-claude/authentication) explicitly supports API keys in that header, and the subsequent live comparison completed authenticated Claude requests. The reviewer's claim does not apply to the API version used here.
+2. **[P2] Malformed coordinates could bypass retry/fallback.** Confirmed. A float coordinate can compare equal to an integer in Python dictionaries, pass list membership, and then fail `Game.step` validation. I fixed the runner to validate exact action keys and types before legality comparison and added a regression test proving the invalid response is retried before applying a legal move.
+3. **[P2] Tool definition not included in cache.** I did not change this implementation. Anthropic's [prompt caching documentation](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) defines prefix order as `tools` then `system` then `messages`; the breakpoint on the system block therefore covers the preceding tool definition. The live trace also records cache-write and cache-read tokens. The report now says cache activity was observed but does not claim savings without a cache-disabled control.
+4. **[P3] API-cost notice omitted a retry.** Confirmed and fixed. The consent/status copy now says one request is usual, an invalid selection can trigger one retry, and the total episode budget is 80 calls.
+5. **[P3] Source map cited nonexistent `neighbor_mines`.** Confirmed and fixed. The rule row now points to the `_numbers` calculation in `Game._place_mines_safely`.
 
-## Findings and disposition
+## Checks with no finding
 
-1. **Recording-mode API gate (P2):** The first review found that hiding the model button did not stop ordinary sessions from posting to `/api/model/step`. I added a `model_playback_enabled` session flag set by the recording-only page and required it at the route before making a provider call. A normal page session is rejected. The reviewer confirmed the reset wiring, UI, route, and regression check. This is an explicit opt-in for this local app, not an authentication boundary: a caller can create a session with the flag set directly.
-2. **History cap:** The first review found that a custom caller could request more than the documented eight actions. `ModelAgent` and the runner now enforce a limit of one through eight; tests cover the upper bound. The reviewer confirmed the cap.
-3. **Source-map wording:** The map now explains that size presets are the only map-size selector and there is no separate difficulty setting. The reviewer confirmed the clarification.
+The reviewer found no direct preterminal seed or mine leak. The deterministic solver and Claude agent receive public observations and legal actions; bounded history contains public actions/results only. It found the course workflow correctly scoped. The live evaluation recorded 30 paired episodes afterward; full results and the network-sandbox preflight failure are in [EVALUATION.md](../EVALUATION.md) and its linked traces.
 
-The reviewer found the KMines rule summary and Atari no-reuse statement consistent with the cited sources. The project does not reuse Poolshark code or Atari content.
-
-## Verification and remaining limits
-
-The read-only reviewer reported all 32 unit tests passing and `node --check hex_minesweeper/static/app.js` passing after the fixes. I separately viewed both the ordinary page and `/?recording=model`: the first shows only the deterministic Game playing agent; the recording view shows a live model Start control and warns that calls may use paid credits. No live provider call was made.
-
-This review does not supply the missing live model comparison, partner-game playtest notes, human playtest of Hexsweeper, recording, two separate skill-invocation session links, student-authored team log, or a fresh clone of the final course PR head. The reviewer could not verify those artifacts, and this report does not claim they exist. The model comparison still needs to report both model variants on the same declared and held-out cases, including failures, limits, latency, tokens, and dated cost.
+After addressing the confirmed findings, the local suite passed 45 tests; JavaScript syntax and `git diff --check` passed. This is an independent read-only review of the current integration plus author follow-up. It is not GitHub Actions evidence, and the review itself did not make API calls.

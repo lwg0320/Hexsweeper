@@ -1,8 +1,8 @@
 {
   "implementation_agent": {
     "name": "Codex implementation session",
-    "configuration": "Codex desktop local task using the system-provided GPT-6 model family; exact model variant and reasoning setting were not exposed. Read-only public web research and localhost browser verification were used. No live model API key was available.",
-    "permissions": ["read and write project files", "run local shell commands and deterministic checks", "read public web sources", "operate the localhost game in a browser"],
+    "configuration": "Codex desktop local task using the system-provided GPT-6 model family; exact model variant and reasoning setting were not exposed. It used public web research, localhost verification, deterministic tests, and the user-authorized Anthropic comparison recorded in EVALUATION.md. The API key value was not opened or logged.",
+    "permissions": ["read and write project files", "run local shell commands and deterministic checks", "read public web sources", "operate the localhost game in a browser", "run the user-authorized live Anthropic comparison and record estimated charges"],
     "prompt": "agent/implementation.md",
     "status": "implementation complete; student should verify and personalize the log"
   },
@@ -16,9 +16,9 @@
   "gameplay_agent": {
     "name": "Hex Minesweeper model player",
     "entrypoint": "hex_minesweeper.model_agent.ModelAgent",
-    "provider": "OpenAI Responses API",
+    "provider": "Anthropic Claude Messages API",
     "model_environment_variable": "HEXSWEEPER_MODEL",
-    "default_model": "gpt-6-astra",
+    "default_model": "claude-haiku-5-5",
     "tool_allowlist": ["choose_move"],
     "filesystem_tools": false,
     "shell_tools": false,
@@ -34,17 +34,18 @@
   "reusable_skill": {
     "path": "hex_minesweeper/skills/hex-minesweeper-player/SKILL.md",
     "loaded_by": "hex_minesweeper.model_agent.ModelAgent",
-    "separate_assistant_session_invocations_verified": 0,
+    "separate_assistant_session_invocations_verified": 2,
     "invocation_log": "agent/skill-usage.md"
   },
   "independent_review": {
-    "status": "current_diff_read_only_review_and_followup_complete",
+    "status": "fresh read-only review of current Claude integration completed; confirmed malformed-coordinate, request-warning, and source-map issues were fixed; auth and cache findings were checked against current official docs and live traces",
     "review_prompt": "agent/independent-review.md",
     "report": "agent/REVIEW.md",
-    "reviewer_session_link_recorded": false,
+    "reviewer_session_link_recorded": true,
     "reviewer_must_not_have_written_code": true,
-    "reviewer_type": "separate read-only Codex subagent in this task",
-    "summary": "Current-diff review and read-only fix follow-up found no direct preterminal seed or mine leak. The reviewer identified and confirmed fixes for normal-session model-route access, a history limit above eight, and source-map wording. A standalone Codex CLI/cloud session link is not recorded.",
-    "coverage_note": "The review is current to the November 6 worktree, but the course's Codex evidence asks for a separate review session. Add a fresh session link if required; do not represent this subagent task as a standalone CLI/cloud session."
+    "reviewer_type": "separate read-only Codex task reviewing the current working tree",
+    "session_link": "codex://threads/01a1b302-e7fb-7be2-aed4-de5184f40cdb",
+    "summary": "The reviewer found no direct preterminal seed or mine leak. It reported a malformed-coordinate retry bypass, an incomplete retry-cost warning, a nonexistent source-map symbol, and two disputed points about API-key bearer auth and cache-prefix coverage. The confirmed implementation/documentation issues were fixed; the auth and cache claims were checked against current Anthropic docs and the live API traces.",
+    "coverage_note": "The reviewer inspected the current Claude integration read-only and made no network or model calls. The paired live evaluation is separately recorded in EVALUATION.md."
   }
 }

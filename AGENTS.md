@@ -17,7 +17,7 @@ The reusable player prompt is named `hex-minesweeper-player` and lives at `hex_m
 
 ## Website
 
-The ordinary website exposes the human controls and the deterministic **Game playing agent**. Model playback is available only through the explicit `/?recording=model` mode, where the visitor must click Start; do not expose model controls on the ordinary page.
+The main game page exposes the human controls, the deterministic **Game playing agent**, and the Claude API agent. Keep the Claude key server-side in the local, gitignored `.env` file. Before a session can call `/api/model/step`, require the UI's explicit user opt-in and enable that session through `/api/model/enable`. The first UI use must warn that API requests may incur cost. Never put the API key in browser code or return it from a status endpoint.
 
 ## Checks and evidence
 
