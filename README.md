@@ -47,6 +47,8 @@ The map below labels each rule as `manual`, `code`, `observed`, `assumed`, or `d
 
 This scope replaces the earlier Poolshark direction with a small hex-grid Minesweeper adaptation. If scope had to shrink further, remove the small and large presets first and keep the medium-board game loop and player interface.
 
+I posted this scope change as a reply to my [original Week 3 discussion post](https://courseworks2.columbia.edu/courses/258228/discussion_topics/1669984?entry_id=5282356).
+
 ## Setup
 
 - Python 3.8 or newer is required.
@@ -161,17 +163,17 @@ The course-repository workflow is `.github/workflows/midterm-lwg0320.yml`; it ru
 
 ## Team, playtest, and submission evidence
 
-- The coding-agent instructions are in [AGENTS.md](AGENTS.md). The project implementation record is in [AGENT-TEAM.md](AGENT-TEAM.md); it is a fact-checked draft that you must review and rewrite in your own voice before submission.
+- The coding-agent instructions are in [AGENTS.md](AGENTS.md). [AGENT-TEAM.md](AGENT-TEAM.md) is my first-person log of the implementation agent, two skill-use sessions, and the independent review, with the decisions I made and the evidence locations.
 - The remaining agent-team evidence and PR steps are tracked in [agent/submission-checklist.md](agent/submission-checklist.md), with a paste-ready [PR evidence block](agent/pr-body-template.md). The reusable skill's two-session invocation log is [agent/skill-usage.md](agent/skill-usage.md).
 - A fresh, independent, read-only review of the current Claude integration, key-status UI, retry/fallback handling, information boundaries, limits, and documentation is recorded in [agent/REVIEW.md](agent/REVIEW.md). The reviewer did not edit the project or make model calls. The report records the findings, author dispositions, and the malformed-coordinate regression test.
 - The revised human-playtest requirement accepts any person playing your build while you watch without helping. An anonymous friend played all three Hexsweeper sizes; the notes record their low-information early reveal, hesitation, difficulty impression, and a possible instruction change in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md). The later three-classmate silent review ([SILENT-PEER-REVIEWS.md](SILENT-PEER-REVIEWS.md)) is a separate activity after assignments are made.
-- The required three-to-five-minute gameplay video shows the website's deterministic **Game playing agent** choosing and submitting moves automatically. It uses no live model API; identify it accurately as the deterministic constraint-solving agent. The separate **Claude API agent** is available on the game page and through the evaluator; first use requires confirmation and may incur cost.
-- The human playtest notes are in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md). The final live comparison in [EVALUATION.md](EVALUATION.md) covers the declared and held-out suites: all 10 baseline episodes were wins, while both Claude configurations lost all 10 episodes. The full final trace and the earlier diagnostic/pre-fix traces are linked there. The comparison cost about $0.014038 at rates dated 2026-11-06; the final trace is from a dirty local tree and should be regenerated against the eventual course PR version.
-- The local deterministic suite passed 45 tests on 2026-11-06; browser JavaScript syntax and whitespace checks also passed. The course workflow and its passing GitHub Actions run remain to be verified in the course repository.
+- The [4:52 gameplay recording](hexsweeper-recording.mp4) shows the deterministic **Game playing agent** running without manual move selection; its episode ends on a mine, which the game displays as a terminal loss. The recording also shows an automatic Claude API-agent episode. The deterministic solver is a constraint-based player, not an LLM; it sees the public board, can still have to guess, and is bounded by the 80-decision episode limit. The Claude API agent is separate and may incur cost.
+- The human playtest notes are in [PLAYTEST-NOTES.md](PLAYTEST-NOTES.md). The final live comparison in [EVALUATION.md](EVALUATION.md) covers the declared and held-out suites: all 10 baseline episodes were wins, while both Claude configurations lost all 10 episodes. The full final trace and earlier diagnostic/pre-fix traces are linked there. The final comparison cost an estimated $0.014488 at rates dated 2026-11-06. Its trace is from game revision `0bb8a0a`; the working tree was dirty only because documentation and recording changes were uncommitted.
+- A fresh local clone of the course branch passed all 45 tests, the JavaScript syntax check, the baseline evaluation, and a localhost website smoke check; one live Claude smoke also ran from that clone. The course workflow still needs a passing GitHub Actions run after you push and open the PR.
 
 ## Recording
 
-Pending: add the accessible three-to-five-minute recording of the deterministic Game playing agent here and in the course PR description after recording. It needs no live model API. Follow [RECORDING-CHECKLIST.md](RECORDING-CHECKLIST.md).
+Watch or download the [4:52 gameplay recording](hexsweeper-recording.mp4) (44.3 MB). It is the compressed, GitHub-sized copy of the local `vid.mov`; only the MP4 should go into the course PR. The video visibly shows the deterministic Game playing agent running automatically and an unsuccessful mine-reveal episode, followed by a Claude API-agent episode. The narration states the solver's limits: it uses only public board information, may need to guess, and has an 80-decision episode limit. See [RECORDING-CHECKLIST.md](RECORDING-CHECKLIST.md) for recording verification details.
 
 ## Reuse
 

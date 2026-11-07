@@ -1,10 +1,9 @@
-# Recording checklist
+# Recording verification and hand-in
 
-This recording shows the website's deterministic **Game playing agent**. It does not require a live model API. From the project root, start the server with `python3 -m hex_minesweeper.server`, open `http://127.0.0.1:8000`, select a map size, and choose **Run game playing agent**. Let the agent make every move automatically; do not manually choose or submit moves. The main page also offers a separate Claude API agent; do not use or describe that player as the deterministic agent in this video.
+The recorded file is [`hexsweeper-recording.mp4`](hexsweeper-recording.mp4). AVFoundation reports a duration of 292.135 seconds (4:52), one video track, and one audio track. The compressed MP4 is about 44.3 MB; `vid.mov` is the 256 MB original and is ignored by Git.
 
-- Keep the recording between three and five minutes.
-- Show the game, explain the hex clues and selected map size, and show the Game playing agent choosing and submitting actions.
-- Identify it accurately as the deterministic constraint-solving agent. Do not call it an LLM or model-driven player.
-- State its limits: it sees only the public board, can guess when the clues do not force a move, and runs under the game's 80-action episode limit. Explain any failure or incomplete outcome honestly.
-- Avoid showing hidden answer data or a playtester's identity.
-- Add a link viewable by the instructor, TAs, and assigned peer reviewers to both `README.md` and the PR description.
+Sampled frames show the game at several sizes, an automatically running deterministic **Game playing agent**, and a mine-reveal terminal loss. The video later shows the Claude API agent running automatically as well. The mine-hit ending is visible in the game UI.
+
+The owner confirmed on 2026-11-06 that the narration explicitly states the deterministic agent's limits: it sees only public board information, it can still need to guess, and each episode has an 80-decision limit. I verified the picture and duration; I did not independently transcribe the audio.
+
+For the course PR, include `hexsweeper-recording.mp4` in `midterms/lwg0320/`, link it from the README, and replace the branch placeholder in [`agent/pr-body-template.md`](agent/pr-body-template.md) with the actual GitHub file URL. The course repository is public; confirm the link opens without a personal-account permission prompt so the instructor, TAs, and assigned peer reviewers can view it.
